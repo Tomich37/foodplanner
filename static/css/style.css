@@ -158,6 +158,17 @@ body {
     border-color: var(--accent);
 }
 
+.btn--danger {
+    background: #fff5f5;
+    color: #c0392b;
+    border-color: #f5b7b1;
+}
+
+.btn--danger:hover {
+    border-color: #c0392b;
+    color: #a93226;
+}
+
 .btn--small {
     padding: 8px 14px;
     font-size: 13px;
@@ -699,6 +710,10 @@ body {
 
 .recipe-detail__actions {
     margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .recipe-detail__cover {

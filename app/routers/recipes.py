@@ -248,6 +248,21 @@ async def update_recipe(
     return RedirectResponse(url=f"/recipes/{recipe.id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.post("/{recipe_id}/delete", response_class=HTMLResponse, name="delete_recipe")
+async def delete_recipe(
+    request: Request,
+    recipe_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    recipe = await _load_recipe(session, recipe_id)
+    if recipe.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Можно удалять только свои рецепты")
+    await session.delete(recipe)
+    await session.commit()
+    return RedirectResponse(url="/recipes", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/{recipe_id}", response_class=HTMLResponse, name="recipe_detail")
 async def recipe_detail(
     request: Request,

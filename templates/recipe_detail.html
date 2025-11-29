@@ -28,6 +28,13 @@
                         class="btn btn--ghost"
                         >Редактировать</a
                     >
+                    <form
+                        method="post"
+                        action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}"
+                        onsubmit="return confirm('Удалить рецепт без возможности восстановления?');"
+                    >
+                        <button type="submit" class="btn btn--ghost btn--danger">Удалить</button>
+                    </form>
                 </div>
                 {% endif %}
             </div>
