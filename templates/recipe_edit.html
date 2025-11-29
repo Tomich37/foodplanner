@@ -43,6 +43,33 @@
                     <input type="file" id="cover_image" name="cover_image" accept="image/*" />
                     <small class="form-hint">Оставьте поле пустым, чтобы сохранить текущее изображение.</small>
                 </div>
+                {% if available_tags %}
+                {% set selected_tags = recipe.tags or [] %}
+                <div class="form-group">
+                    <label>Теги</label>
+                    <div class="tag-selector">
+                        {% for tag in available_tags %}
+                        {% set input_id = "tag-edit-" ~ loop.index %}
+                        <input
+                            type="checkbox"
+                            id="{{ input_id }}"
+                            name="tags"
+                            value="{{ tag.value }}"
+                            {% if tag.value in selected_tags %}checked{% endif %}
+                            hidden
+                        />
+                        <button
+                            type="button"
+                            class="btn btn--ghost tag-button"
+                            data-tag-toggle
+                            data-target="{{ input_id }}"
+                        >
+                            {{ tag.label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
                 <div class="ingredients" id="ingredients-wrapper">
                     <h2>Ингредиенты</h2>
                     {% if recipe.ingredients %}
@@ -127,6 +154,7 @@
     const addStepBtn = document.getElementById("add-step-btn");
     const ingredientsWrapper = document.getElementById("ingredients-wrapper");
     const addIngredientBtn = document.getElementById("add-ingredient-btn");
+    const tagButtons = document.querySelectorAll("[data-tag-toggle]");
     let stepCount = stepsWrapper.children.length || 0;
 
     addStepBtn?.addEventListener("click", () => {
@@ -161,6 +189,22 @@
             </div>
         `;
         ingredientsWrapper.appendChild(row);
+    });
+
+    tagButtons.forEach((button) => {
+        const inputId = button.getAttribute("data-target");
+        const input = document.getElementById(inputId);
+        if (!input) {
+            return;
+        }
+        const syncState = () => {
+            button.classList.toggle("tag-button--active", input.checked);
+        };
+        syncState();
+        button.addEventListener("click", () => {
+            input.checked = !input.checked;
+            syncState();
+        });
     });
 </script>
 {% endblock %}

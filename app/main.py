@@ -1,5 +1,6 @@
 ﻿from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import STATIC_DIR, settings
@@ -25,6 +26,12 @@ def create_app() -> FastAPI:
 
         async with engine.begin() as conn:
             await conn.run_sync(base.Base.metadata.create_all)
+            await conn.execute(
+                text(
+                    "ALTER TABLE IF EXISTS recipes "
+                    "ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}'::text[]"
+                )
+            )
 
     return application
 

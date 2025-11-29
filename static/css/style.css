@@ -376,6 +376,11 @@ body {
     color: var(--accent);
 }
 
+.badge--tag {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
 /* footer */
 
 .footer {
@@ -528,6 +533,23 @@ body {
     gap: 18px;
 }
 
+.tag-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-button {
+    min-width: 96px;
+}
+
+.tag-button--active {
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 6px 14px rgba(47, 127, 95, 0.2);
+}
+
 .ingredients {
     background: #fff;
     border-radius: var(--radius-lg);
@@ -601,6 +623,13 @@ body {
 .recipe-detail__description {
     color: var(--text-muted);
     max-width: 520px;
+}
+
+.recipe-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
 }
 
 .recipe-ingredients {
