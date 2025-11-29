@@ -116,21 +116,38 @@ def _split_recipes_by_meal(recipes: list[Recipe]) -> dict[str, list[Recipe]]:
     return mapping
 
 
-def _build_menu(recipes: list[Recipe], days: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    grouped = _split_recipes_by_meal(recipes)
+def _build_menu(
+    recipes: list[Recipe],
+    grouped: dict[str, list[Recipe]],
+    days: int,
+    selection_map: dict[tuple[int, str], int],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[tuple[int, str], int]]:
+    recipe_by_id = {recipe.id: recipe for recipe in recipes}
+    updated_selection: dict[tuple[int, str], int] = {}
     menu_plan: list[dict[str, Any]] = []
     shopping: dict[str, dict[str, float]] = {}
 
     for day in range(1, days + 1):
         meals: list[dict[str, Any]] = []
         for meal in MEAL_TYPES:
-            candidates = grouped[meal["key"]] or recipes
+            key = (day, meal["key"])
+            selected_recipe = None
+            selected_id = selection_map.get(key)
+            if selected_id is not None:
+                selected_recipe = recipe_by_id.get(selected_id)
+
+            candidates = grouped.get(meal["key"]) or recipes
             if not candidates:
                 continue
-            recipe = random.choice(candidates)
-            meals.append({"meal": meal["label"], "recipe": recipe})
+            if selected_recipe is None:
+                selected_recipe = random.choice(candidates)
 
-            for ingredient in recipe.ingredients:
+            updated_selection[key] = selected_recipe.id
+            meals.append(
+                {"meal": meal["label"], "meal_key": meal["key"], "recipe": selected_recipe}
+            )
+
+            for ingredient in selected_recipe.ingredients:
                 name = (ingredient.name or "").strip()
                 if not name:
                     continue
@@ -141,13 +158,19 @@ def _build_menu(recipes: list[Recipe], days: int) -> tuple[list[dict[str, Any]],
         menu_plan.append({"day": day, "meals": meals})
 
     shopping_list = sorted(shopping.values(), key=lambda item: item["name"])
-    return menu_plan, shopping_list
+    return menu_plan, shopping_list, updated_selection
 
 
 @router.get("/menu", response_class=HTMLResponse, name="menu_builder")
 async def menu_builder(
     request: Request,
     days: int | None = Query(None, ge=1, le=7),
+    selection: list[str] = Query([], alias="selection"),
+    shuffle_day: int | None = Query(None),
+    shuffle_meal: str | None = Query(None),
+    set_day: int | None = Query(None),
+    set_meal: str | None = Query(None),
+    recipe_id: int | None = Query(None),
     current_user: User | None = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -157,6 +180,32 @@ async def menu_builder(
         .order_by(Recipe.created_at.desc())
     )
     recipes = result.scalars().all()
+    recipe_by_id = {recipe.id: recipe for recipe in recipes}
+    grouped_recipes = _split_recipes_by_meal(recipes)
+    meal_keys = {meal["key"] for meal in MEAL_TYPES}
+
+    selection_map: dict[tuple[int, str], int] = {}
+    for value in selection:
+        try:
+            day_str, meal_key, recipe_str = value.split(":")
+            parsed_day = int(day_str)
+            parsed_recipe = int(recipe_str)
+        except (ValueError, AttributeError):
+            continue
+        if meal_key not in meal_keys or parsed_recipe not in recipe_by_id:
+            continue
+        selection_map[(parsed_day, meal_key)] = parsed_recipe
+
+    if shuffle_day and shuffle_meal in meal_keys:
+        selection_map.pop((shuffle_day, shuffle_meal), None)
+
+    if (
+        set_day
+        and set_meal in meal_keys
+        and recipe_id is not None
+        and recipe_id in recipe_by_id
+    ):
+        selection_map[(set_day, set_meal)] = recipe_id
 
     menu_plan: list[dict[str, Any]] = []
     shopping_list: list[dict[str, Any]] = []
@@ -166,7 +215,14 @@ async def menu_builder(
         if not recipes:
             error_message = "Пока нет рецептов для генерации меню."
         else:
-            menu_plan, shopping_list = _build_menu(recipes, days)
+            menu_plan, shopping_list, selection_map = _build_menu(
+                recipes, grouped_recipes, days, selection_map
+            )
+
+    selection_values = [
+        f"{day}:{meal}:{recipe_id}"
+        for (day, meal), recipe_id in sorted(selection_map.items())
+    ]
 
     return templates.TemplateResponse(
         "menu_builder.html",
@@ -178,5 +234,8 @@ async def menu_builder(
             "shopping_list": shopping_list,
             "error_message": error_message,
             "has_recipes": bool(recipes),
+            "selection_values": selection_values,
+            "recipes_by_meal": grouped_recipes,
+            "all_recipes": recipes,
         },
     )

@@ -56,11 +56,41 @@
                         {% if meal.recipe.description %}
                         <p>{{ meal.recipe.description }}</p>
                         {% endif %}
-                        <a
-                            href="{{ url_for('recipe_detail', recipe_id=meal.recipe.id) }}"
-                            class="btn btn--small btn--primary"
-                            >Открыть рецепт</a
-                        >
+                        <div class="menu-meal-card__actions">
+                            <a
+                                href="{{ url_for('recipe_detail', recipe_id=meal.recipe.id) }}"
+                                class="btn btn--small btn--ghost"
+                                >Открыть рецепт</a
+                            >
+                            <form method="get" action="{{ url_for('menu_builder') }}">
+                                <input type="hidden" name="days" value="{{ selected_days }}" />
+                                <input type="hidden" name="shuffle_day" value="{{ day.day }}" />
+                                <input type="hidden" name="shuffle_meal" value="{{ meal.meal_key }}" />
+                                {% for value in selection_values %}
+                                <input type="hidden" name="selection" value="{{ value }}" />
+                                {% endfor %}
+                                <button type="submit" class="btn btn--small btn--ghost">
+                                    Другой вариант
+                                </button>
+                            </form>
+                        </div>
+                        <form method="get" action="{{ url_for('menu_builder') }}" class="menu-meal-card__select">
+                            <input type="hidden" name="days" value="{{ selected_days }}" />
+                            <input type="hidden" name="set_day" value="{{ day.day }}" />
+                            <input type="hidden" name="set_meal" value="{{ meal.meal_key }}" />
+                            {% for value in selection_values %}
+                            <input type="hidden" name="selection" value="{{ value }}" />
+                            {% endfor %}
+                            {% set options = recipes_by_meal.get(meal.meal_key) or all_recipes %}
+                            <select name="recipe_id">
+                                {% for option in options %}
+                                <option value="{{ option.id }}" {% if option.id == meal.recipe.id %}selected{% endif %}>
+                                    {{ option.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn--small btn--primary">Выбрать</button>
+                        </form>
                     </article>
                     {% endfor %}
                 </div>
@@ -75,4 +105,3 @@
     </div>
 </section>
 {% endblock %}
-

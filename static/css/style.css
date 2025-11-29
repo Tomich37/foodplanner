@@ -540,6 +540,33 @@ body {
     font-size: 14px;
 }
 
+.menu-meal-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.menu-meal-card__actions form {
+    margin: 0;
+}
+
+.menu-meal-card__select {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.menu-meal-card__select select {
+    flex: 1;
+    min-width: 160px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    font-size: 14px;
+}
+
 .recipe-card__actions {
     display: flex;
     justify-content: space-between;
