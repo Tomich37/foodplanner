@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}FoodPlanner{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}" />
+</head>
+<body>
+<header class="header">
+    <div class="container header__inner">
+        <div class="logo">FoodPlanner</div>
+        <nav class="nav">
+            <a href="/" class="nav__link nav__link--active">Главная</a>
+            {% if current_user %}
+            <a href="{{ url_for('recipes_new') }}" class="nav__link">Создать рецепт</a>
+            {% endif %}
+            <a href="#" class="nav__link">Рецепты</a>
+            <a href="#" class="nav__link">Планы питания</a>
+            <a href="#" class="nav__link">Поддержка</a>
+            <a href="#" class="nav__link">О сервисе</a>
+        </nav>
+        {% if current_user %}
+        <div class="header__profile">
+            <div class="avatar">
+                {{ (current_user.full_name or current_user.email)[0]|upper }}
+            </div>
+            <div class="profile-info">
+                <div class="profile-name">
+                    {{ current_user.full_name or current_user.email }}
+                </div>
+                <a href="{{ url_for('logout') }}" class="profile-logout">Выйти</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="header__auth">
+            <a href="{{ url_for('login_form') }}" class="btn btn--ghost btn--small">Войти</a>
+            <a href="{{ url_for('register_form') }}" class="btn btn--primary btn--small"
+                >Регистрация</a
+            >
+        </div>
+        {% endif %}
+    </div>
+</header>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+    <div class="container footer__inner">
+        <div>© {{ 2025 }} FoodPlanner</div>
+        <div class="footer__links">
+            <a href="#">О компании</a>
+            <a href="#">Политика</a>
+            <a href="#">Партнёрская программа</a>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

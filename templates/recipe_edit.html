@@ -1,0 +1,166 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Редактировать рецепт · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="recipe-form">
+    <div class="container">
+        <div class="recipe-form__card">
+            <h1>Редактировать рецепт</h1>
+            <p class="recipe-form__subtitle">
+                Измените описание, замените изображения или обновите ингредиенты и шаги.
+            </p>
+            <form
+                method="post"
+                action="{{ url_for('update_recipe', recipe_id=recipe.id) }}"
+                enctype="multipart/form-data"
+                class="recipe-form__form"
+            >
+                <div class="form-group">
+                    <label for="title">Название блюда</label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        required
+                        value="{{ recipe.title }}"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="description">Описание</label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="4"
+                        placeholder="Коротко расскажите о блюде"
+                    >{{ recipe.description or '' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="cover_image">Обложка рецепта</label>
+                    {% if recipe.image_path %}
+                    <img src="{{ recipe.image_path }}" alt="Обложка" class="recipe-step__preview" />
+                    {% endif %}
+                    <input type="file" id="cover_image" name="cover_image" accept="image/*" />
+                    <small class="form-hint">Оставьте поле пустым, чтобы сохранить текущее изображение.</small>
+                </div>
+                <div class="ingredients" id="ingredients-wrapper">
+                    <h2>Ингредиенты</h2>
+                    {% if recipe.ingredients %}
+                    {% for ingredient in recipe.ingredients %}
+                    <div class="ingredient-row">
+                        <div class="form-group">
+                            <label>Продукт</label>
+                            <input
+                                type="text"
+                                name="ingredient_names"
+                                required
+                                value="{{ ingredient.name }}"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label>Количество</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                name="ingredient_amounts"
+                                required
+                                value="{{ '%.2f' % ingredient.amount }}"
+                            />
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="ingredient-row">
+                        <div class="form-group">
+                            <label>Продукт</label>
+                            <input type="text" name="ingredient_names" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Количество</label>
+                            <input type="number" step="0.01" min="0" name="ingredient_amounts" required />
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="button" class="btn btn--ghost" id="add-ingredient-btn">
+                    Добавить ингредиент
+                </button>
+                <div class="recipe-form__steps" id="steps-wrapper">
+                    {% if recipe.steps %}
+                    {% for step in recipe.steps %}
+                    <div class="recipe-step" data-step-index="{{ loop.index }}">
+                        <div class="form-group">
+                            <label>Шаг {{ loop.index }}</label>
+                            <textarea name="steps" rows="3" required>{{ step.instruction }}</textarea>
+                        </div>
+                        {% if step.image_path %}
+                        <img src="{{ step.image_path }}" alt="Шаг {{ loop.index }}" class="recipe-step__preview" />
+                        {% endif %}
+                        <div class="form-group">
+                            <label>Новое фото шага (опционально)</label>
+                            <input type="file" name="step_images" accept="image/*" />
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="recipe-step" data-step-index="1">
+                        <div class="form-group">
+                            <label>Шаг 1</label>
+                            <textarea name="steps" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Фото шага (опционально)</label>
+                            <input type="file" name="step_images" accept="image/*" />
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="button" class="btn btn--ghost" id="add-step-btn">Добавить ещё шаг</button>
+                <button type="submit" class="btn btn--primary btn--full">Сохранить изменения</button>
+            </form>
+        </div>
+    </div>
+</section>
+<script>
+    const stepsWrapper = document.getElementById("steps-wrapper");
+    const addStepBtn = document.getElementById("add-step-btn");
+    const ingredientsWrapper = document.getElementById("ingredients-wrapper");
+    const addIngredientBtn = document.getElementById("add-ingredient-btn");
+    let stepCount = stepsWrapper.children.length || 0;
+
+    addStepBtn?.addEventListener("click", () => {
+        stepCount += 1;
+        const stepEl = document.createElement("div");
+        stepEl.className = "recipe-step";
+        stepEl.dataset.stepIndex = String(stepCount);
+        stepEl.innerHTML = `
+            <div class="form-group">
+                <label>Шаг ${stepCount}</label>
+                <textarea name="steps" rows="3" required placeholder="Опишите шаг ${stepCount}"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Фото шага (опционально)</label>
+                <input type="file" name="step_images" accept="image/*" />
+            </div>
+        `;
+        stepsWrapper.appendChild(stepEl);
+    });
+
+    addIngredientBtn?.addEventListener("click", () => {
+        const row = document.createElement("div");
+        row.className = "ingredient-row";
+        row.innerHTML = `
+            <div class="form-group">
+                <label>Продукт</label>
+                <input type="text" name="ingredient_names" required placeholder="Название ингредиента" />
+            </div>
+            <div class="form-group">
+                <label>Количество</label>
+                <input type="number" name="ingredient_amounts" step="0.01" min="0" required placeholder="0" />
+            </div>
+        `;
+        ingredientsWrapper.appendChild(row);
+    });
+</script>
+{% endblock %}

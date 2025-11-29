@@ -1,0 +1,65 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Регистрация · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="container auth-card">
+        <h1>Регистрация</h1>
+        <p class="auth-subtitle">
+            Создайте профиль, чтобы синхронизировать свои планы на всех устройствах.
+        </p>
+        {% if errors %}
+        <ul class="form-error">
+            {% for err in errors %}
+            <li>{{ err }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <form method="post" class="auth-form">
+            <div class="form-group">
+                <label for="full_name">Имя и фамилия</label>
+                <input
+                    type="text"
+                    id="full_name"
+                    name="full_name"
+                    value="{{ form_full_name | default('', true) }}"
+                    placeholder="Например, Анна Смирнова"
+                />
+            </div>
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    value="{{ form_email | default('', true) }}"
+                />
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" name="password" required />
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Повторите пароль</label>
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        required
+                    />
+                </div>
+            </div>
+            <button type="submit" class="btn btn--primary btn--full">
+                Создать аккаунт
+            </button>
+        </form>
+        <p class="auth-switch">
+            Уже авторизованы?
+            <a href="{{ url_for('login_form') }}">Войдите в аккаунт</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

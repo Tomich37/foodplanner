@@ -1,0 +1,57 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ recipe.title }} · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="recipe-detail">
+    <div class="container recipe-detail__card">
+        <div class="recipe-detail__header">
+            <div>
+                <p class="recipe-detail__meta">Автор: {{ recipe.author.full_name or recipe.author.email }}</p>
+                <h1>{{ recipe.title }}</h1>
+                {% if recipe.description %}
+                <p class="recipe-detail__description">{{ recipe.description }}</p>
+                {% endif %}
+                {% if current_user and recipe.user_id == current_user.id %}
+                <div class="recipe-detail__actions">
+                    <a
+                        href="{{ url_for('recipes_edit', recipe_id=recipe.id) }}"
+                        class="btn btn--ghost"
+                        >Редактировать</a
+                    >
+                </div>
+                {% endif %}
+            </div>
+            {% if recipe.image_path %}
+            <img src="{{ recipe.image_path }}" alt="{{ recipe.title }}" class="recipe-detail__cover" />
+            {% endif %}
+        </div>
+        {% if recipe.ingredients %}
+        <div class="recipe-ingredients">
+            <h2>Ингредиенты</h2>
+            <ul>
+                {% for item in recipe.ingredients %}
+                <li>
+                    <span>{{ item.name }}</span>
+                    <span class="recipe-ingredients__amount">{{ '%.2f' % item.amount }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <ol class="recipe-steps">
+            {% for step in recipe.steps %}
+            <li class="recipe-step-item">
+                <div class="recipe-step-item__body">
+                    <h3>Шаг {{ loop.index }}</h3>
+                    <p>{{ step.instruction }}</p>
+                    {% if step.image_path %}
+                    <img src="{{ step.image_path }}" alt="Шаг {{ loop.index }}" />
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ol>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,145 @@
+﻿{% extends "base.html" %}
+
+{% block title %}FoodPlanner — план питания на каждый день{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container hero__inner">
+        <div class="hero__text">
+            <h1>Планируйте питание и экономьте время</h1>
+            <p class="hero__subtitle">
+                FoodPlanner помогает подобрать рецепты, собрать недельное меню и держать питание под
+                контролем даже при плотном графике.
+            </p>
+            <div class="hero__actions">
+                {% if current_user %}
+                <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
+                <a href="#popular" class="btn btn--ghost">Популярные рецепты</a>
+                {% else %}
+                <a href="{{ url_for('register_form') }}" class="btn btn--primary">Создать аккаунт</a>
+                <a href="{{ url_for('login_form') }}" class="btn btn--ghost">У меня уже есть аккаунт</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="hero__illustration">
+            <div class="hero__card">
+                <div class="hero__card-title">Что внутри</div>
+                <ul class="hero__card-list">
+                    <li>Недельные планы питания</li>
+                    <li>Покупки в один клик</li>
+                    <li>Фильтр ПП и быстрых блюд</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="categories">
+    <div class="container">
+        <h2>Подборки рецептов</h2>
+        <div class="categories__grid">
+            {% for cat in categories %}
+            <button class="category-card">
+                <span class="category-card__icon">{{ cat.icon }}</span>
+                <span class="category-card__label">{{ cat.label }}</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="week-preview">
+    <div class="container week-preview__inner">
+        <div class="week-preview__menu">
+            <h2>Меню на сегодня</h2>
+            <table class="week-preview__table">
+                <tr>
+                    <th>Завтрак</th>
+                    <td>{{ weekly_menu.breakfast }}</td>
+                </tr>
+                <tr>
+                    <th>Обед</th>
+                    <td>{{ weekly_menu.lunch }}</td>
+                </tr>
+                <tr>
+                    <th>Ужин</th>
+                    <td>{{ weekly_menu.dinner }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="week-preview__actions">
+            <p>Собирайте меню из готовых подборок и моментально выгружайте список покупок.</p>
+            {% if current_user %}
+            <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Собрать своё меню</a>
+            {% else %}
+            <a href="{{ url_for('register_form') }}" class="btn btn--primary">Начать бесплатно</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="popular">
+    <div class="container">
+        <h2 id="popular">Популярные рецепты</h2>
+        <div class="popular__grid">
+            {% for r in popular_recipes %}
+            <article class="recipe-card">
+                <img src="{{ r.image_url }}" alt="{{ r.name }}" class="recipe-card__image" />
+                <div class="recipe-card__body">
+                    <div class="recipe-card__top">
+                        <h3 class="recipe-card__title">{{ r.name }}</h3>
+                        {% if r.pp %}
+                        <span class="badge badge--pp">ПП</span>
+                        {% endif %}
+                    </div>
+                    <div class="recipe-card__meta">
+                        <span>{{ r.type }}</span>
+                        <span>⏱ {{ r.time }}</span>
+                        <span>🔥 {{ r.kcal }} ккал</span>
+                    </div>
+                    <div class="recipe-card__actions">
+                        <a href="#" class="btn btn--small btn--primary">Подробнее</a>
+                        <button class="btn btn--small btn--ghost">+ в меню</button>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% if latest_recipes %}
+<section class="popular latest">
+    <div class="container">
+        <h2>Новые рецепты пользователей</h2>
+        <div class="popular__grid">
+            {% for recipe in latest_recipes %}
+            <article class="recipe-card">
+                <img
+                    src="{{ recipe.image_path or 'https://via.placeholder.com/300x200?text=Recipe' }}"
+                    alt="{{ recipe.title }}"
+                    class="recipe-card__image"
+                />
+                <div class="recipe-card__body">
+                    <div class="recipe-card__top">
+                        <h3 class="recipe-card__title">{{ recipe.title }}</h3>
+                        <span class="badge">{{ recipe.author.full_name or recipe.author.email }}</span>
+                    </div>
+                    <p class="recipe-card__description">
+                        {{ recipe.description or 'Пошаговый рецепт от сообщества' }}
+                    </p>
+                    <div class="recipe-card__actions">
+                        <a
+                            href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}"
+                            class="btn btn--small btn--primary"
+                            >Открыть рецепт</a
+                        >
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

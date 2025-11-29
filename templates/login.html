@@ -1,0 +1,36 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Вход · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="container auth-card">
+        <h1>Вход в профиль</h1>
+        <p class="auth-subtitle">Введите e-mail и пароль, чтобы продолжить.</p>
+        {% if error %}
+        <div class="form-error">{{ error }}</div>
+        {% endif %}
+        <form method="post" class="auth-form">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    value="{{ form_email | default('', true) }}"
+                />
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" required />
+            </div>
+            <button type="submit" class="btn btn--primary btn--full">Войти</button>
+        </form>
+        <p class="auth-switch">
+            Ещё нет аккаунта?
+            <a href="{{ url_for('register_form') }}">Зарегистрируйтесь</a>
+        </p>
+    </div>
+</section>
+{% endblock %}
