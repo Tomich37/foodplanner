@@ -551,20 +551,46 @@ body {
     margin: 0;
 }
 
-.menu-meal-card__select {
+.menu-picker {
     display: flex;
+    flex-direction: column;
     gap: 8px;
-    flex-wrap: wrap;
     margin-top: 8px;
 }
 
-.menu-meal-card__select select {
-    flex: 1;
-    min-width: 160px;
+.menu-picker__search {
     border-radius: var(--radius-md);
     border: 1px solid var(--border);
     padding: 8px 10px;
     font-size: 14px;
+}
+
+.menu-picker__options {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 6px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.menu-picker__option {
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    text-align: left;
+    background: #f7f7f7;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.menu-picker__option.is-active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text-main);
 }
 
 .recipe-card__actions {

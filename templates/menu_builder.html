@@ -74,21 +74,34 @@
                                 </button>
                             </form>
                         </div>
-                        <form method="get" action="{{ url_for('menu_builder') }}" class="menu-meal-card__select">
+                        <form method="get" action="{{ url_for('menu_builder') }}" class="menu-picker" data-picker>
                             <input type="hidden" name="days" value="{{ selected_days }}" />
                             <input type="hidden" name="set_day" value="{{ day.day }}" />
                             <input type="hidden" name="set_meal" value="{{ meal.meal_key }}" />
+                            <input type="hidden" name="recipe_id" value="{{ meal.recipe.id }}" data-picker-value />
                             {% for value in selection_values %}
                             <input type="hidden" name="selection" value="{{ value }}" />
                             {% endfor %}
                             {% set options = recipes_by_meal.get(meal.meal_key) or all_recipes %}
-                            <select name="recipe_id">
+                            <input
+                                type="text"
+                                class="menu-picker__search"
+                                placeholder="Поиск по названию"
+                                data-picker-search
+                            />
+                            <div class="menu-picker__options" data-picker-options>
                                 {% for option in options %}
-                                <option value="{{ option.id }}" {% if option.id == meal.recipe.id %}selected{% endif %}>
+                                <button
+                                    type="button"
+                                    class="menu-picker__option {% if option.id == meal.recipe.id %}is-active{% endif %}"
+                                    data-picker-option
+                                    data-id="{{ option.id }}"
+                                    data-title="{{ option.title|lower }}"
+                                >
                                     {{ option.title }}
-                                </option>
+                                </button>
                                 {% endfor %}
-                            </select>
+                            </div>
                             <button type="submit" class="btn btn--small btn--primary">Выбрать</button>
                         </form>
                     </article>
@@ -104,4 +117,32 @@
         {% endif %}
     </div>
 </section>
+<script>
+    document.querySelectorAll("[data-picker]").forEach((picker) => {
+        const valueInput = picker.querySelector("[data-picker-value]");
+        const optionsBox = picker.querySelector("[data-picker-options]");
+        const searchInput = picker.querySelector("[data-picker-search]");
+        if (!valueInput || !optionsBox) {
+            return;
+        }
+        const setActive = (targetId) => {
+            valueInput.value = String(targetId);
+            optionsBox
+                .querySelectorAll("[data-picker-option]")
+                .forEach((btn) => btn.classList.toggle("is-active", btn.dataset.id === String(targetId)));
+        };
+        optionsBox.querySelectorAll("[data-picker-option]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                setActive(btn.dataset.id);
+            });
+        });
+        searchInput?.addEventListener("input", () => {
+            const query = searchInput.value.trim().toLowerCase();
+            optionsBox.querySelectorAll("[data-picker-option]").forEach((btn) => {
+                const title = btn.dataset.title || "";
+                btn.style.display = title.includes(query) ? "block" : "none";
+            });
+        });
+    });
+</script>
 {% endblock %}
