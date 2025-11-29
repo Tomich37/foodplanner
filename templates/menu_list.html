@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Мои меню · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="menu-list">
+    <div class="container">
+        <div class="menu-list__header">
+            <div>
+                <h1>Сохранённые меню</h1>
+                <p class="menu-planner__subtitle">
+                    Здесь отображаются ваши меню. Выберите одно для просмотра или создайте новое.
+                </p>
+            </div>
+            <a href="{{ url_for('menu_builder') }}" class="btn btn--primary">Сгенерировать меню</a>
+        </div>
+
+        {% if not current_user %}
+        <p class="menu-save-hint">Войдите, чтобы сохранять меню и возвращаться к ним позже.</p>
+        {% elif saved_menus %}
+        <div class="saved-menus__list">
+            {% for menu in saved_menus %}
+            <article class="saved-menu-card">
+                <div>
+                    <h3>{{ menu.title }}</h3>
+                    <p>
+                        {{ menu.days_count }}
+                        {{ 'день' if menu.days_count == 1 else 'дня' if menu.days_count in [2,3,4] else 'дней' }}
+                        · {{ menu.created_at.strftime('%d.%m.%Y %H:%M') if menu.created_at else '' }}
+                    </p>
+                </div>
+                <div class="saved-menu-card__actions">
+                    <a
+                        href="{{ url_for('menu_builder') }}?menu_id={{ menu.id }}"
+                        class="btn btn--ghost btn--small"
+                        >Открыть</a
+                    >
+                    <form method="post" action="{{ url_for('delete_menu', menu_id=menu.id) }}">
+                        <button
+                            type="submit"
+                            class="btn btn--ghost btn--small btn--danger"
+                            onclick="return confirm('Удалить меню?');"
+                        >
+                            Удалить
+                        </button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="menu-save-hint">
+            У вас ещё нет меню. Нажмите «Сгенерировать меню», чтобы создать первое.
+        </p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
