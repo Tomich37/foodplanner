@@ -4,10 +4,11 @@ import uuid
 from pathlib import Path
 from typing import Iterable
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import String, Text, cast, select
+from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -99,10 +100,19 @@ async def _load_recipe(session: AsyncSession, recipe_id: int) -> Recipe:
 @router.get("/", response_class=HTMLResponse, name="recipes_list")
 async def recipes_list(
     request: Request,
+    tags: list[str] = Query([]),
     session: AsyncSession = Depends(get_session),
     current_user: User | None = Depends(get_current_user),
 ):
-    result = await session.execute(_recipes_query().order_by(Recipe.created_at.desc()))
+    selected_tags = _normalize_tags(tags)
+    query = _recipes_query().order_by(Recipe.created_at.desc())
+    if selected_tags:
+        tag_array = cast(
+            array(selected_tags, type_=ARRAY(Text())),
+            ARRAY(Text()),
+        )
+        query = query.where(Recipe.tags.contains(tag_array))
+    result = await session.execute(query)
     recipes = result.scalars().all()
     return templates.TemplateResponse(
         "recipes_list.html",
@@ -111,6 +121,8 @@ async def recipes_list(
             "current_user": current_user,
             "recipes": recipes,
             "tag_labels": TAG_LABELS,
+            "available_tags": AVAILABLE_TAGS,
+            "selected_tags": selected_tags,
         },
     )
 

@@ -17,6 +17,24 @@
             <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
             {% endif %}
         </div>
+        {% if available_tags %}
+        <div class="recipes-filters">
+            <div class="tag-selector">
+                {% for tag in available_tags %}
+                <button
+                    type="button"
+                    class="btn btn--ghost tag-button {% if selected_tags and tag.value in selected_tags %}tag-button--active{% endif %}"
+                    data-filter-tag="{{ tag.value }}"
+                >
+                    {{ tag.label }}
+                </button>
+                {% endfor %}
+            </div>
+            {% if selected_tags %}
+            <button type="button" class="btn btn--ghost" data-reset-tags>Сбросить</button>
+            {% endif %}
+        </div>
+        {% endif %}
         {% if recipes %}
         <div class="recipes-grid">
             {% for recipe in recipes %}
@@ -76,5 +94,36 @@
         {% endif %}
     </div>
 </section>
+<script>
+    const filterButtons = document.querySelectorAll("[data-filter-tag]");
+    const resetBtn = document.querySelector("[data-reset-tags]");
+    const getCurrentTags = () => {
+        const params = new URLSearchParams(window.location.search);
+        return new Set(params.getAll("tags"));
+    };
+    const applySelection = (tagsSet) => {
+        const params = new URLSearchParams(window.location.search);
+        params.delete("tags");
+        tagsSet.forEach((value) => params.append("tags", value));
+        const newSearch = params.toString();
+        const basePath = window.location.pathname;
+        const target = newSearch ? `${basePath}?${newSearch}` : basePath;
+        window.location.href = target;
+    };
+    filterButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            const value = button.getAttribute("data-filter-tag");
+            const tagsSet = getCurrentTags();
+            if (tagsSet.has(value)) {
+                tagsSet.delete(value);
+            } else {
+                tagsSet.add(value);
+            }
+            applySelection(tagsSet);
+        });
+    });
+    resetBtn?.addEventListener("click", () => {
+        window.location.href = window.location.pathname;
+    });
+</script>
 {% endblock %}
-
