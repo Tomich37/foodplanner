@@ -106,7 +106,7 @@ async def index(
         {"key": "breakfast", "label": "Завтраки", "icon": "🍳"},
         {"key": "lunch", "label": "Обеды", "icon": "🍲"},
         {"key": "dinner", "label": "Ужины", "icon": "🍽"},
-        {"key": "snacks", "label": "Перекусы", "icon": "🍪"},
+        {"key": "snack", "label": "Перекусы", "icon": "🍪"},
         {"key": "pp", "label": "Полезное", "icon": "🥗"},
     ]
 
