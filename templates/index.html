@@ -39,10 +39,13 @@
         <h2>Подборки рецептов</h2>
         <div class="categories__grid">
             {% for cat in categories %}
-            <button class="category-card">
+            <a
+                class="category-card"
+                href="{{ url_for('recipes_list') }}?tags={{ cat.key }}"
+            >
                 <span class="category-card__icon">{{ cat.icon }}</span>
                 <span class="category-card__label">{{ cat.label }}</span>
-            </button>
+            </a>
             {% endfor %}
         </div>
     </div>
@@ -74,36 +77,6 @@
             {% else %}
             <a href="{{ url_for('register_form') }}" class="btn btn--primary">Начать бесплатно</a>
             {% endif %}
-        </div>
-    </div>
-</section>
-
-<section class="popular">
-    <div class="container">
-        <h2 id="popular">Популярные рецепты</h2>
-        <div class="popular__grid">
-            {% for r in popular_recipes %}
-            <article class="recipe-card">
-                <img src="{{ r.image_url }}" alt="{{ r.name }}" class="recipe-card__image" />
-                <div class="recipe-card__body">
-                    <div class="recipe-card__top">
-                        <h3 class="recipe-card__title">{{ r.name }}</h3>
-                        {% if r.pp %}
-                        <span class="badge badge--pp">ПП</span>
-                        {% endif %}
-                    </div>
-                    <div class="recipe-card__meta">
-                        <span>{{ r.type }}</span>
-                        <span>⏱ {{ r.time }}</span>
-                        <span>🔥 {{ r.kcal }} ккал</span>
-                    </div>
-                    <div class="recipe-card__actions">
-                        <a href="#" class="btn btn--small btn--primary">Подробнее</a>
-                        <button class="btn btn--small btn--ghost">+ в меню</button>
-                    </div>
-                </div>
-            </article>
-            {% endfor %}
         </div>
     </div>
 </section>

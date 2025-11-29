@@ -22,11 +22,11 @@ async def index(
     session: AsyncSession = Depends(get_session),
 ):
     categories = [
-        {"key": "breakfast", "label": "Завтраки", "icon": "BF"},
-        {"key": "lunch", "label": "Обеды", "icon": "LN"},
-        {"key": "dinner", "label": "Ужины", "icon": "DN"},
-        {"key": "snacks", "label": "Перекусы", "icon": "SN"},
-        {"key": "pp", "label": "Полезное", "icon": "PP"},
+        {"key": "breakfast", "label": "Завтраки", "icon": "🍳"},
+        {"key": "lunch", "label": "Обеды", "icon": "🍲"},
+        {"key": "dinner", "label": "Ужины", "icon": "🍽"},
+        {"key": "snacks", "label": "Перекусы", "icon": "🍪"},
+        {"key": "pp", "label": "Полезное", "icon": "🥗"},
     ]
 
     weekly_menu = {

@@ -255,10 +255,19 @@ body {
     gap: 8px;
     cursor: pointer;
     font-size: 14px;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.category-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 6px 16px rgba(47, 127, 95, 0.15);
+    transform: translateY(-1px);
 }
 
 .category-card__icon {
-    font-size: 16px;
+    font-size: 18px;
 }
 
 /* week preview */
