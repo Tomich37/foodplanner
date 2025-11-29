@@ -17,15 +17,16 @@
                 class="nav__link {% if current_path == '/' %}nav__link--active{% endif %}"
                 >Главная</a
             >
-            {% if current_user %}
-            <a href="{{ url_for('recipes_new') }}" class="nav__link">Создать рецепт</a>
-            {% endif %}
             <a
                 href="{{ url_for('recipes_list') }}"
                 class="nav__link {% if current_path.startswith('/recipes') %}nav__link--active{% endif %}"
                 >Рецепты</a
             >
-            <a href="#" class="nav__link">Планы питания</a>
+            <a
+                href="{{ url_for('menu_builder') }}"
+                class="nav__link {% if current_path.startswith('/menu') %}nav__link--active{% endif %}"
+                >Планы питания</a
+            >
             <a href="#" class="nav__link">Поддержка</a>
             <a href="#" class="nav__link">О сервисе</a>
         </nav>

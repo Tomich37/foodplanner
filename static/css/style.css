@@ -422,6 +422,124 @@ body {
     gap: 6px;
 }
 
+.menu-planner {
+    padding: 40px 0 60px;
+}
+
+.menu-planner__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.menu-planner__subtitle {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    max-width: 520px;
+}
+
+.menu-form {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.menu-form label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.menu-form select {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    font-size: 15px;
+    min-width: 140px;
+}
+
+.menu-alert {
+    padding: 14px 18px;
+    border-radius: var(--radius-md);
+    background: #fff3cd;
+    color: #664d03;
+    margin-bottom: 20px;
+}
+
+.shopping-list {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+    background: #fff;
+}
+
+.shopping-list ul {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.shopping-list li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+}
+
+.shopping-list__amount {
+    font-weight: 600;
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.menu-day {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    background: #fff;
+}
+
+.menu-day__meals {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.menu-meal-card {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+}
+
+.menu-meal-card__meta {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+
+.menu-meal-card h4 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+
+.menu-meal-card p {
+    margin: 0 0 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
 .recipe-card__actions {
     display: flex;
     justify-content: space-between;

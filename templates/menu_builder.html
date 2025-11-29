@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Планировщик меню · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="menu-planner">
+    <div class="container">
+        <div class="menu-planner__header">
+            <div>
+                <h1>Соберите меню</h1>
+                <p class="menu-planner__subtitle">
+                    Выберите количество дней (от 1 до 7), а мы автоматически составим меню из существующих
+                    рецептов и подготовим общий список продуктов для закупки.
+                </p>
+            </div>
+            <form method="get" action="{{ url_for('menu_builder') }}" class="menu-form">
+                <label for="days">Количество дней</label>
+                <select id="days" name="days" required>
+                    <option value="">Выберите...</option>
+                    {% for day in range(1, 8) %}
+                    <option value="{{ day }}" {% if selected_days == day %}selected{% endif %}>
+                        {{ day }} {{ 'день' if day == 1 else 'дня' if day in [2,3,4] else 'дней' }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn--primary">Сгенерировать</button>
+            </form>
+        </div>
+
+        {% if error_message %}
+        <div class="menu-alert">{{ error_message }}</div>
+        {% endif %}
+
+        {% if menu_plan %}
+        <div class="shopping-list">
+            <h2>Список покупок</h2>
+            <ul>
+                {% for item in shopping_list %}
+                <li>
+                    <span>{{ item.name }}</span>
+                    <span class="shopping-list__amount">{{ '%.2f' % item.amount }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="menu-grid">
+            {% for day in menu_plan %}
+            <div class="menu-day">
+                <h3>День {{ day.day }}</h3>
+                <div class="menu-day__meals">
+                    {% for meal in day.meals %}
+                    <article class="menu-meal-card">
+                        <div class="menu-meal-card__meta">{{ meal.meal }}</div>
+                        <h4>{{ meal.recipe.title }}</h4>
+                        {% if meal.recipe.description %}
+                        <p>{{ meal.recipe.description }}</p>
+                        {% endif %}
+                        <a
+                            href="{{ url_for('recipe_detail', recipe_id=meal.recipe.id) }}"
+                            class="btn btn--small btn--primary"
+                            >Открыть рецепт</a
+                        >
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif selected_days and not error_message %}
+        <p class="menu-planner__subtitle">
+            Ничего не удалось подобрать. Добавьте ещё рецептов, чтобы собирать полноценное меню.
+        </p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+

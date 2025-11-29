@@ -14,7 +14,6 @@
             <div class="hero__actions">
                 {% if current_user %}
                 <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
-                <a href="#popular" class="btn btn--ghost">Популярные рецепты</a>
                 {% else %}
                 <a href="{{ url_for('register_form') }}" class="btn btn--primary">Создать аккаунт</a>
                 <a href="{{ url_for('login_form') }}" class="btn btn--ghost">У меня уже есть аккаунт</a>
@@ -73,7 +72,7 @@
         <div class="week-preview__actions">
             <p>Собирайте меню из готовых подборок и моментально выгружайте список покупок.</p>
             {% if current_user %}
-            <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Собрать своё меню</a>
+            <a href="{{ url_for('menu_builder') }}" class="btn btn--primary">Собрать своё меню</a>
             {% else %}
             <a href="{{ url_for('register_form') }}" class="btn btn--primary">Начать бесплатно</a>
             {% endif %}
