@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Рецепты сообщества · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="recipes-list">
+    <div class="container">
+        <div class="recipes-list__header">
+            <div>
+                <h1>Рецепты сообщества</h1>
+                <p class="recipes-list__subtitle">
+                    Здесь собраны все блюда, которые пользователи уже поделились в FoodPlanner.
+                    Добавляйте свои идеи и сохраняйте понравившиеся рецепты.
+                </p>
+            </div>
+            {% if current_user %}
+            <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
+            {% endif %}
+        </div>
+        {% if recipes %}
+        <div class="recipes-grid">
+            {% for recipe in recipes %}
+            <article class="recipe-card">
+                <img
+                    src="{{ recipe.image_path or 'https://via.placeholder.com/300x200?text=Recipe' }}"
+                    alt="{{ recipe.title }}"
+                    class="recipe-card__image"
+                />
+                <div class="recipe-card__body">
+                    <div class="recipe-card__top">
+                        <h3 class="recipe-card__title">{{ recipe.title }}</h3>
+                        <span class="badge">
+                            {{ recipe.author.full_name or recipe.author.email }}
+                        </span>
+                    </div>
+                    {% if recipe.description %}
+                    <p class="recipe-card__description">
+                        {{ recipe.description }}
+                    </p>
+                    {% endif %}
+                    {% if recipe.tags %}
+                    <div class="recipe-card__tags">
+                        {% for tag in recipe.tags %}
+                        <span class="badge badge--tag">
+                            {{ tag_labels.get(tag, tag) if tag_labels else tag }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="recipe-card__meta">
+                        <span>Шагов: {{ recipe.steps | length }}</span>
+                        <span>Ингредиентов: {{ recipe.ingredients | length }}</span>
+                    </div>
+                    <div class="recipe-card__actions">
+                        <a
+                            href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}"
+                            class="btn btn--small btn--primary"
+                            >Открыть</a
+                        >
+                        {% if current_user and recipe.user_id == current_user.id %}
+                        <a
+                            href="{{ url_for('recipes_edit', recipe_id=recipe.id) }}"
+                            class="btn btn--small btn--ghost"
+                            >Редактировать</a
+                        >
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="recipes-list__empty">
+            Пока ещё нет рецептов, но вы можете стать первым автором!
+        </p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+

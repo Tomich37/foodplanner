@@ -96,6 +96,25 @@ async def _load_recipe(session: AsyncSession, recipe_id: int) -> Recipe:
     return recipe
 
 
+@router.get("/", response_class=HTMLResponse, name="recipes_list")
+async def recipes_list(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user),
+):
+    result = await session.execute(_recipes_query().order_by(Recipe.created_at.desc()))
+    recipes = result.scalars().all()
+    return templates.TemplateResponse(
+        "recipes_list.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "recipes": recipes,
+            "tag_labels": TAG_LABELS,
+        },
+    )
+
+
 @router.get("/new", response_class=HTMLResponse, name="recipes_new")
 async def new_recipe(request: Request, current_user: User = Depends(get_current_user_required)):
     return templates.TemplateResponse(
