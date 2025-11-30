@@ -362,6 +362,17 @@ async def delete_recipe(
     return RedirectResponse(url="/recipes", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.post("/view-mode", response_class=HTMLResponse, name="toggle_recipe_view")
+async def toggle_recipe_view(
+    request: Request,
+    next_url: str = Form("/"),
+):
+    """Переключает режим минимального просмотра рецептов (с изображениями / без)."""
+    current = bool(request.session.get("minimal_recipe_view"))
+    request.session["minimal_recipe_view"] = not current
+    return RedirectResponse(url=next_url or "/", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/ingredients", response_class=JSONResponse, name="ingredients_suggest")
 async def ingredient_suggest(
     q: str = Query("", min_length=1),
@@ -396,6 +407,7 @@ async def recipe_detail(
 ):
     """Детальная страница рецепта."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
+    minimal_view = bool(request.session.get("minimal_recipe_view"))
     return templates.TemplateResponse(
         "recipe_detail.html",
         {
@@ -403,5 +415,6 @@ async def recipe_detail(
             "current_user": current_user,
             "recipe": recipe,
             "tag_labels": recipe_service.tag_labels,
+            "minimal_view": minimal_view,
         },
     )
