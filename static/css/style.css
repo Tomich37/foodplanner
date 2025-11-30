@@ -104,6 +104,37 @@ body {
     font-size: 13px;
 }
 
+.link-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.15s ease;
+}
+
+.link-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px rgba(47, 127, 95, 0.2);
+    background: #d8f0e4;
+}
+
+.link-pill__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
 .profile-logout {
     font-size: 12px;
     color: var(--accent);

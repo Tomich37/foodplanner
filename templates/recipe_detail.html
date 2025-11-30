@@ -9,8 +9,9 @@
             <div>
                 <p class="recipe-detail__meta">
                     Автор:
-                    <a href="{{ url_for('user_profile', user_id=recipe.author.id) }}" class="link">
-                        {{ recipe.author.full_name or recipe.author.email }}
+                    <a href="{{ url_for('user_profile', user_id=recipe.author.id) }}" class="link-pill">
+                        <span class="link-pill__avatar">{{ (recipe.author.full_name or recipe.author.email)[0]|upper }}</span>
+                        <span>{{ recipe.author.full_name or recipe.author.email }}</span>
                     </a>
                 </p>
                 <h1>{{ recipe.title }}</h1>
