@@ -160,46 +160,6 @@ async def index(
         "dinner": "Запеченная рыба с картофелем",
     }
 
-    # Популярные рецепты для блока «что попробовать».
-    popular_recipes = [
-        {
-            "id": 1,
-            "name": "Омлет с томатами и зеленью",
-            "type": "Завтрак",
-            "pp": True,
-            "time": "15 минут",
-            "kcal": 320,
-            "image_url": "https://via.placeholder.com/300x200?text=Breakfast",
-        },
-        {
-            "id": 2,
-            "name": "Сливочный суп с грибами",
-            "type": "Обед",
-            "pp": True,
-            "time": "30 минут",
-            "kcal": 280,
-            "image_url": "https://via.placeholder.com/300x200?text=Soup",
-        },
-        {
-            "id": 3,
-            "name": "Курица в соевом соусе с рисом",
-            "type": "Ужин",
-            "pp": True,
-            "time": "25 минут",
-            "kcal": 350,
-            "image_url": "https://via.placeholder.com/300x200?text=Chicken",
-        },
-        {
-            "id": 4,
-            "name": "Творожный десерт с медом",
-            "type": "Перекус",
-            "pp": True,
-            "time": "5 минут",
-            "kcal": 180,
-            "image_url": "https://via.placeholder.com/300x200?text=Snack",
-        },
-    ]
-
     # Забираем последние рецепты из базы для блока «новинки».
     result = await session.execute(
         select(Recipe)
@@ -215,7 +175,6 @@ async def index(
             "request": request,
             "categories": categories,
             "weekly_menu": weekly_menu,
-            "popular_recipes": popular_recipes,
             "latest_recipes": latest_recipes,
             "current_user": current_user,
         },
