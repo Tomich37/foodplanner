@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import Text, cast, select
 from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func
 
 from app.core.config import STATIC_DIR, TEMPLATES_DIR
 from app.db.session import get_session
@@ -359,6 +360,31 @@ async def delete_recipe(
     await session.delete(recipe)
     await session.commit()
     return RedirectResponse(url="/recipes", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/ingredients", response_class=JSONResponse, name="ingredients_suggest")
+async def ingredient_suggest(
+    q: str = Query("", min_length=1),
+    session: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user),
+):
+    """Возвращает подсказки по ингредиентам (имя + единица) для автодополнения."""
+    query = (
+        select(RecipeIngredient.name, RecipeIngredient.unit)
+        .where(func.lower(RecipeIngredient.name).like(f"%{q.lower()}%"))
+        .limit(10)
+    )
+    result = await session.execute(query)
+    rows = result.all()
+    seen: set[str] = set()
+    suggestions = []
+    for name, unit in rows:
+        key = (name or "").strip()
+        if not key or key.lower() in seen:
+            continue
+        seen.add(key.lower())
+        suggestions.append({"name": key, "unit": unit or unit_converter.default_unit})
+    return {"items": suggestions}
 
 
 @router.get("/{recipe_id}", response_class=HTMLResponse, name="recipe_detail")

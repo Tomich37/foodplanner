@@ -75,12 +75,17 @@
                     <div class="ingredient-row">
                         <div class="form-group">
                             <label>Продукт</label>
-                            <input
-                                type="text"
-                                name="ingredient_names"
-                                required
-                                value="{{ ingredient.name }}"
-                            />
+                            <div class="autocomplete">
+                                <input
+                                    type="text"
+                                    name="ingredient_names"
+                                    class="ingredient-name"
+                                    required
+                                    value="{{ ingredient.name }}"
+                                    autocomplete="off"
+                                />
+                                <div class="autocomplete__list"></div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Количество</label>
@@ -110,7 +115,10 @@
                     <div class="ingredient-row">
                         <div class="form-group">
                             <label>Продукт</label>
-                            <input type="text" name="ingredient_names" required />
+                            <div class="autocomplete">
+                                <input type="text" name="ingredient_names" class="ingredient-name" required autocomplete="off" />
+                                <div class="autocomplete__list"></div>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Количество</label>
@@ -214,13 +222,86 @@
         stepsWrapper.appendChild(stepEl);
     });
 
+    function attachAutocomplete(row) {
+        const input = row.querySelector(".ingredient-name");
+        const unitSelect = row.querySelector("select[name='ingredient_units']");
+        const list = row.querySelector(".autocomplete__list");
+        if (!input || !list) return;
+
+        let currentSuggestions = [];
+
+        const renderList = () => {
+            list.innerHTML = "";
+            if (!currentSuggestions.length) {
+                list.style.display = "none";
+                input.placeholder = "Название ингредиента";
+                return;
+            }
+            input.placeholder = currentSuggestions[0].name;
+            currentSuggestions.forEach((item) => {
+                const option = document.createElement("button");
+                option.type = "button";
+                option.textContent = item.name;
+                option.dataset.unit = item.unit;
+                option.addEventListener("click", () => applySuggestion(item));
+                list.appendChild(option);
+            });
+            list.style.display = "block";
+        };
+
+        const applySuggestion = (item) => {
+            input.value = item.name;
+            if (unitSelect) {
+                unitSelect.value = item.unit || "g";
+            }
+            list.innerHTML = "";
+            list.style.display = "none";
+        };
+
+        input.addEventListener("input", async () => {
+            const query = input.value.trim();
+            if (query.length < 2) {
+                currentSuggestions = [];
+                renderList();
+                return;
+            }
+            try {
+                const resp = await fetch(`/recipes/ingredients?q=${encodeURIComponent(query)}`);
+                const data = await resp.json();
+                currentSuggestions = data.items || [];
+                renderList();
+            } catch (e) {
+                currentSuggestions = [];
+                renderList();
+            }
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Tab" && currentSuggestions.length) {
+                e.preventDefault();
+                applySuggestion(currentSuggestions[0]);
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!row.contains(e.target)) {
+                list.innerHTML = "";
+                list.style.display = "none";
+            }
+        });
+    }
+
+    document.querySelectorAll(".ingredient-row").forEach(attachAutocomplete);
     addIngredientBtn?.addEventListener("click", () => {
         const row = document.createElement("div");
         row.className = "ingredient-row";
         row.innerHTML = `
             <div class="form-group">
                 <label>Продукт</label>
-                <input type="text" name="ingredient_names" required placeholder="Название ингредиента" />
+                <div class="autocomplete">
+                    <input type="text" name="ingredient_names" class="ingredient-name" required placeholder="Название ингредиента" autocomplete="off" />
+                    <div class="autocomplete__list"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label>Количество</label>
@@ -255,5 +336,74 @@
             syncState();
         });
     });
+
+    function attachAutocomplete(row) {
+        const input = row.querySelector(".ingredient-name");
+        const unitSelect = row.querySelector("select[name='ingredient_units']");
+        const list = row.querySelector(".autocomplete__list");
+        if (!input || !list) return;
+
+        let currentSuggestions = [];
+
+        const renderList = () => {
+            list.innerHTML = "";
+            if (!currentSuggestions.length) {
+                list.style.display = "none";
+                input.placeholder = "Название ингредиента";
+                return;
+            }
+            input.placeholder = currentSuggestions[0].name;
+            currentSuggestions.forEach((item) => {
+                const option = document.createElement("button");
+                option.type = "button";
+                option.textContent = item.name;
+                option.dataset.unit = item.unit;
+                option.addEventListener("click", () => applySuggestion(item));
+                list.appendChild(option);
+            });
+            list.style.display = "flex";
+        };
+
+        const applySuggestion = (item) => {
+            input.value = item.name;
+            if (unitSelect) {
+                unitSelect.value = item.unit || "g";
+            }
+            list.innerHTML = "";
+            list.style.display = "none";
+        };
+
+        input.addEventListener("input", async () => {
+            const query = input.value.trim();
+            if (query.length < 2) {
+                currentSuggestions = [];
+                renderList();
+                return;
+            }
+            try {
+                const resp = await fetch(`/recipes/ingredients?q=${encodeURIComponent(query)}`);
+                const data = await resp.json();
+                currentSuggestions = data.items || [];
+                renderList();
+            } catch (e) {
+                currentSuggestions = [];
+                renderList();
+            }
+        });
+
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Tab" && currentSuggestions.length) {
+                e.preventDefault();
+                applySuggestion(currentSuggestions[0]);
+            }
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!row.contains(e.target)) {
+                list.innerHTML = "";
+                list.style.display = "none";
+            }
+        });
+    }
 </script>
 {% endblock %}

@@ -1080,6 +1080,38 @@ textarea:focus {
     gap: 8px;
 }
 
+.autocomplete {
+    position: relative;
+}
+
+.autocomplete__list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    display: none;
+    flex-direction: column;
+    z-index: 20;
+    overflow: hidden;
+}
+
+.autocomplete__list button {
+    border: none;
+    background: transparent;
+    padding: 10px 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.autocomplete__list button:hover {
+    background: var(--accent-soft);
+}
+
 .profile__form .form-group {
     margin-bottom: 14px;
 }
