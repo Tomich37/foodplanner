@@ -935,6 +935,7 @@ body {
     display: flex;
     gap: 24px;
     flex-wrap: wrap;
+    justify-content: space-around;
 }
 
 .recipe-detail__meta {
