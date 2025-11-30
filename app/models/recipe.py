@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
@@ -62,5 +62,6 @@ class RecipeIngredient(Base):
     recipe_id: Mapped[int] = mapped_column(ForeignKey("recipes.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(255))
     amount: Mapped[float] = mapped_column(Float)
+    unit: Mapped[str] = mapped_column(String(16), default="g", server_default="g")
 
     recipe: Mapped["Recipe"] = relationship("Recipe", back_populates="ingredients")

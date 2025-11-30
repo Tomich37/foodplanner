@@ -69,17 +69,17 @@
         <p class="menu-save-hint">Войдите, чтобы сохранить меню и вернуться к нему позже.</p>
         {% endif %}
 
-        <div class="shopping-list">
-            <h2>Список покупок</h2>
-            <ul>
-                {% for item in shopping_list %}
-                <li>
-                    <span>{{ item.name }}</span>
-                    <span class="shopping-list__amount">{{ '%.2f' % item.amount }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
+            <div class="shopping-list">
+                <h2>Список покупок</h2>
+                <ul>
+                    {% for item in shopping_list %}
+                    <li>
+                        <span>{{ item.name }}</span>
+                        <span class="shopping-list__amount">{{ item.display }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
 
         <div class="menu-grid">
             {% for day in menu_plan %}

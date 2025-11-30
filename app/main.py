@@ -40,6 +40,12 @@ def create_app() -> FastAPI:
                     "ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"
                 )
             )
+            await conn.execute(
+                text(
+                    "ALTER TABLE IF EXISTS recipe_ingredients "
+                    "ADD COLUMN IF NOT EXISTS unit VARCHAR(16) NOT NULL DEFAULT 'g'"
+                )
+            )
 
     return application
 

@@ -18,11 +18,14 @@ from app.models.menu import Menu, MenuDay, MenuMeal
 from app.models.recipe import Recipe
 from app.models.user import User
 from app.services.cover_resolver import recipe_cover_resolver
+from app.services.unit_converter import UnitConverter
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
-# Глобальный helper в шаблонах для выбора обложки с учётом заглушек.
+# Глобальные helper'ы в шаблонах.
 templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
+unit_converter = UnitConverter()
+templates.env.globals["format_amount"] = unit_converter.format_human
 
 
 @dataclass(frozen=True)
@@ -45,10 +48,11 @@ class MenuPlanResult:
 class MenuPlanner:
     """Инкапсулирует логику генерации меню (SRP) и позволяет расширять список приемов пищи (OCP)."""
 
-    def __init__(self, meal_types: Sequence[MealType]):
+    def __init__(self, meal_types: Sequence[MealType], unit_converter: UnitConverter):
         # Сохраняем доступные типы приемов пищи и готовим набор ключей для валидации ввода.
         self.meal_types: tuple[MealType, ...] = tuple(meal_types)
         self.meal_keys: set[str] = {meal.key for meal in meal_types}
+        self.unit_converter = unit_converter
 
     def parse_selection(self, values: Sequence[str], recipe_ids: set[int]) -> dict[tuple[int, str], int]:
         """Разбирает выбор рецептов из строки запроса/формы и отбрасывает мусорные значения."""
@@ -87,7 +91,7 @@ class MenuPlanner:
         recipe_by_id = {recipe.id: recipe for recipe in recipes}
         updated_selection: dict[tuple[int, str], int] = {}
         menu_plan: list[dict[str, Any]] = []
-        shopping: dict[str, dict[str, float]] = {}
+        shopping: dict[str, dict[str, Any]] = {}
 
         for day in range(1, days + 1):
             meals: list[dict[str, Any]] = []
@@ -106,17 +110,41 @@ class MenuPlanner:
                 meals.append({"meal": meal.label, "meal_key": meal.key, "recipe": selected_recipe})
 
                 # Накопление ингредиентов для списка покупок.
-                for ingredient in selected_recipe.ingredients:
-                    name = (ingredient.name or "").strip()
-                    if not name:
-                        continue
-                    key_name = name.lower()
-                    entry = shopping.setdefault(key_name, {"name": name, "amount": 0.0})
-                    entry["amount"] += float(ingredient.amount or 0)
+            for ingredient in selected_recipe.ingredients:
+                name = (ingredient.name or "").strip()
+                if not name:
+                    continue
+                key_name = name.lower()
+                entry = shopping.setdefault(
+                    key_name,
+                    {"name": name, "mass": 0.0, "volume": 0.0, "other": False},
+                )
+                base_amount, unit_type = self.unit_converter.to_base(
+                    float(ingredient.amount or 0), getattr(ingredient, "unit", None)
+                )
+                if unit_type == "mass" and base_amount:
+                    entry["mass"] += base_amount
+                elif unit_type == "volume" and base_amount:
+                    entry["volume"] += base_amount
+                else:
+                    entry["other"] = True
 
             menu_plan.append({"day": day, "meals": meals})
 
-        shopping_list = sorted(shopping.values(), key=lambda item: item["name"])
+        shopping_list: list[dict[str, Any]] = []
+        for item in shopping.values():
+            display = "по вкусу" if item.get("other") else ""
+            if item.get("mass", 0) > 0:
+                value, label = self.unit_converter.format_total(item["mass"], "mass")
+                display = f"{value:.2f} {label}"
+            elif item.get("volume", 0) > 0:
+                value, label = self.unit_converter.format_total(item["volume"], "volume")
+                display = f"{value:.2f} {label}"
+            if not display:
+                display = "—"
+            shopping_list.append({"name": item["name"], "display": display})
+
+        shopping_list = sorted(shopping_list, key=lambda item: item["name"])
         return MenuPlanResult(plan=menu_plan, shopping_list=shopping_list, selection_map=updated_selection)
 
     @staticmethod
@@ -134,7 +162,7 @@ MEAL_TYPES = (
     MealType(key="lunch", label="Обед"),
     MealType(key="dinner", label="Ужин"),
 )
-menu_planner = MenuPlanner(MEAL_TYPES)
+menu_planner = MenuPlanner(MEAL_TYPES, unit_converter)
 
 
 @router.get("/", response_class=HTMLResponse)

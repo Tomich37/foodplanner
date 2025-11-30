@@ -18,12 +18,15 @@ from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models import Recipe, RecipeIngredient, RecipeStep, User
 from app.services.cover_resolver import recipe_cover_resolver
+from app.services.unit_converter import UnitConverter
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 UPLOADS_DIR = STATIC_DIR / "uploads"
 # Глобальный helper в шаблонах для выбора обложки с учётом заглушек.
 templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
+unit_converter = UnitConverter()
+templates.env.globals["format_amount"] = unit_converter.format_human
 
 
 @dataclass(frozen=True)
@@ -65,11 +68,21 @@ class RecipeService:
             normalized.append(value)
         return normalized
 
-    def prepare_ingredients(self, names: Iterable[str], amounts: Iterable[float]) -> list[tuple[str, float]]:
-        items: list[tuple[str, float]] = []
-        for name, amount in zip(names, amounts):
+    def prepare_ingredients(
+        self, names: Iterable[str], amounts: Iterable[float], units: Iterable[str]
+    ) -> list[tuple[str, float, str]]:
+        items: list[tuple[str, float, str]] = []
+        names_list = list(names)
+        amounts_list = list(amounts)
+        units_list = list(units)
+        for idx, (name, amount) in enumerate(zip(names_list, amounts_list)):
             clean_name = (name or "").strip()
             if not clean_name:
+                continue
+            unit_raw = units_list[idx] if idx < len(units_list) else None
+            normalized_unit = unit_converter.normalize_unit(unit_raw)
+            if normalized_unit == "taste":
+                items.append((clean_name, 0.0, normalized_unit))
                 continue
             try:
                 parsed_amount = float(amount)
@@ -77,10 +90,10 @@ class RecipeService:
                 continue
             if parsed_amount <= 0:
                 continue
-            items.append((clean_name, parsed_amount))
+            items.append((clean_name, parsed_amount, normalized_unit))
         return items
 
-    def validate_common_fields(self, title: str, steps: list[str], ingredients: list[tuple[str, float]]):
+    def validate_common_fields(self, title: str, steps: list[str], ingredients: list[tuple[str, float, str]]):
         if not title.strip():
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Название рецепта обязательно")
         if not steps:
@@ -120,7 +133,7 @@ class RecipeService:
         self,
         recipe: Recipe,
         step_texts: Sequence[str],
-        ingredients: Sequence[tuple[str, float]],
+        ingredients: Sequence[tuple[str, float, str]],
         step_images: Sequence[UploadFile] | None,
         existing_step_images: Sequence[str] | None = None,
         delete_step_images: set[int] | None = None,
@@ -158,8 +171,8 @@ class RecipeService:
                 )
             )
 
-        for name, amount in ingredients:
-            recipe.ingredients.append(RecipeIngredient(name=name, amount=amount))
+        for name, amount, unit in ingredients:
+            recipe.ingredients.append(RecipeIngredient(name=name, amount=amount, unit=unit))
 
     def apply_tag_filter(self, query, selected_tags: list[str]):
         if not selected_tags:
@@ -231,6 +244,7 @@ async def create_recipe(
     steps: list[str] = Form(...),
     ingredient_names: list[str] = Form([]),
     ingredient_amounts: list[float] = Form([]),
+    ingredient_units: list[str] = Form([]),
     tags: list[str] = Form([]),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user_required),
@@ -239,7 +253,7 @@ async def create_recipe(
 ):
     """Создает рецепт и сохраняет шаги/ингредиенты."""
     step_texts = recipe_service.clean_steps(steps)
-    ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts)
+    ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts, ingredient_units)
     selected_tags = recipe_service.normalize_tags(tags)
     recipe_service.validate_common_fields(title, step_texts, ingredients)
 
@@ -294,6 +308,7 @@ async def update_recipe(
     delete_step_images: list[int] = Form([]),
     ingredient_names: list[str] = Form([]),
     ingredient_amounts: list[float] = Form([]),
+    ingredient_units: list[str] = Form([]),
     tags: list[str] = Form([]),
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user_required),
@@ -305,7 +320,7 @@ async def update_recipe(
     recipe_service.ensure_can_manage(recipe, current_user)
 
     cleaned_steps = recipe_service.clean_steps(steps)
-    ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts)
+    ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts, ingredient_units)
     selected_tags = recipe_service.normalize_tags(tags)
     recipe_service.validate_common_fields(title, cleaned_steps, ingredients)
 
@@ -320,7 +335,7 @@ async def update_recipe(
     delete_flags = {int(idx) for idx in delete_step_images} if delete_step_images else set()
     await recipe_service.fill_recipe(
         recipe,
-        steps,
+        cleaned_steps,
         ingredients,
         step_images,
         existing_step_images,

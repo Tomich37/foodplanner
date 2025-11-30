@@ -53,6 +53,16 @@
                             <label>Количество</label>
                             <input type="number" step="0.01" min="0" name="ingredient_amounts" required placeholder="0" />
                         </div>
+                        <div class="form-group">
+                            <label>Ед. изм.</label>
+                            <select name="ingredient_units">
+                                <option value="g">граммы</option>
+                                <option value="ml">миллилитры</option>
+                                <option value="tbsp">ст. л.</option>
+                                <option value="tsp">ч. л.</option>
+                                <option value="taste">по вкусу</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <button type="button" class="btn btn--ghost" id="add-ingredient-btn">Добавить ингредиент</button>
@@ -111,6 +121,16 @@
             <div class="form-group">
                 <label>Количество</label>
                 <input type="number" name="ingredient_amounts" step="0.01" min="0" required placeholder="0" />
+            </div>
+            <div class="form-group">
+                <label>Ед. изм.</label>
+                <select name="ingredient_units">
+                    <option value="g" selected>граммы</option>
+                    <option value="ml">миллилитры</option>
+                    <option value="tbsp">ст. л.</option>
+                    <option value="tsp">ч. л.</option>
+                    <option value="taste">по вкусу</option>
+                </select>
             </div>
         `;
         ingredientsWrapper.appendChild(row);
