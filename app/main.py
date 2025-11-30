@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
@@ -7,7 +7,7 @@ from app.core.config import STATIC_DIR, settings
 from app.db import base
 from app.db.session import engine
 from app.routers import auth, pages
-from app.routers import recipes
+from app.routers import recipes, profile
 
 
 def create_app() -> FastAPI:
@@ -19,6 +19,7 @@ def create_app() -> FastAPI:
     application.include_router(pages.router)
     application.include_router(auth.router)
     application.include_router(recipes.router)
+    application.include_router(profile.router)
 
     @application.on_event("startup")
     async def on_startup() -> None:

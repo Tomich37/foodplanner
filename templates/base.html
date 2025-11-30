@@ -27,8 +27,13 @@
                 class="nav__link {% if current_path.startswith('/menu') %}nav__link--active{% endif %}"
                 >Планы питания</a
             >
-            <a href="#" class="nav__link">Поддержка</a>
-            <a href="#" class="nav__link">О сервисе</a>
+            {% if current_user %}
+            <a
+                href="{{ url_for('profile') }}"
+                class="nav__link {% if current_path.startswith('/profile') %}nav__link--active{% endif %}"
+                >Профиль</a
+            >
+            {% endif %}
         </nav>
         {% if current_user %}
         <div class="header__profile">
