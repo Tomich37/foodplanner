@@ -192,6 +192,7 @@ RECIPE_TAGS = (
     RecipeTag(value="dessert", label="Десерт"),
     RecipeTag(value="snack", label="Перекус"),
     RecipeTag(value="pp", label="ПП"),
+    RecipeTag(value="fast", label="Быстрый"),
 )
 recipe_service = RecipeService(UPLOADS_DIR, RECIPE_TAGS)
 
