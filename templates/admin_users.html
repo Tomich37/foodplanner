@@ -3,53 +3,140 @@
 {% block title %}Админка · Пользователи{% endblock %}
 
 {% block content %}
+{% set admin_list = users | selectattr("is_admin") | list %}
+{% set user_list = users | rejectattr("is_admin") | list %}
+
 <section class="admin-users">
     <div class="container">
-        <h1>Управление администраторами</h1>
-        <p class="admin-users__subtitle">Назначайте и снимайте права администратора с пользователей.</p>
-
-        <div class="table">
-            <div class="table__row table__row--head">
-                <div class="table__cell">ID</div>
-                <div class="table__cell">E-mail</div>
-                <div class="table__cell">Имя</div>
-                <div class="table__cell">Статус</div>
-                <div class="table__cell">Действия</div>
+        <div class="admin-users__header">
+            <div>
+                <p class="eyebrow">Администрирование</p>
+                <h1>Управление пользователями</h1>
+                <p class="admin-users__subtitle">
+                    Назначайте или снимайте права администраторов. Используйте фильтры и поиск, чтобы быстро найти нужного человека.
+                </p>
             </div>
+            <div class="admin-users__stats">
+                <div class="stat-card">
+                    <div class="stat-card__label">Всего пользователей</div>
+                    <div class="stat-card__value">{{ users|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card__label">Администраторы</div>
+                    <div class="stat-card__value">{{ admin_list|length }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card__label">Обычные</div>
+                    <div class="stat-card__value">{{ user_list|length }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-users__controls">
+            <div class="btn-group">
+                <button class="btn btn--ghost btn--small filter-btn filter-btn--active" data-filter="all">Все</button>
+                <button class="btn btn--ghost btn--small filter-btn" data-filter="admin">Админы</button>
+                <button class="btn btn--ghost btn--small filter-btn" data-filter="user">Пользователи</button>
+            </div>
+            <div class="search-box">
+                <input type="search" id="user-search" placeholder="Поиск по e-mail или имени" />
+            </div>
+        </div>
+
+        <div class="admin-users__grid" id="user-grid">
             {% for user in users %}
-            <div class="table__row">
-                <div class="table__cell">{{ user.id }}</div>
-                <div class="table__cell">{{ user.email }}</div>
-                <div class="table__cell">{{ user.full_name or "—" }}</div>
-                <div class="table__cell">
+            <article
+                class="user-card"
+                data-role="{{ 'admin' if user.is_admin else 'user' }}"
+                data-search="{{ (user.full_name or '') | lower }} {{ user.email | lower }}"
+            >
+                <div class="user-card__top">
+                    <div class="user-card__avatar">
+                        {{ (user.full_name or user.email)[0]|upper }}
+                    </div>
+                    <div class="user-card__info">
+                        <div class="user-card__name">{{ user.full_name or user.email }}</div>
+                        <div class="user-card__email">{{ user.email }}</div>
+                        <div class="user-card__meta">
+                            ID: {{ user.id }} · Зарегистрирован: {{ user.created_at.strftime('%d.%m.%Y') if user.created_at else '—' }}
+                        </div>
+                    </div>
+                    <span class="badge {{ 'badge--success' if user.is_admin else '' }}">
+                        {{ 'Администратор' if user.is_admin else 'Пользователь' }}
+                    </span>
+                </div>
+
+                <div class="user-card__actions">
                     {% if user.is_admin %}
-                    <span class="badge badge--success">Администратор</span>
+                    <form method="post" action="{{ url_for('admin_revoke', user_id=user.id) }}" onsubmit="return confirm('Снять права администратора?');">
+                        <button
+                            type="submit"
+                            class="btn btn--ghost btn--danger btn--small"
+                            {% if user.id == current_user.id %}disabled title="Нельзя снять права с себя"{% endif %}
+                        >
+                            Снять админа
+                        </button>
+                    </form>
                     {% else %}
-                    <span class="badge">Пользователь</span>
+                    <form method="post" action="{{ url_for('admin_grant', user_id=user.id) }}">
+                        <button type="submit" class="btn btn--primary btn--small">Сделать админом</button>
+                    </form>
                     {% endif %}
                 </div>
-                <div class="table__cell">
-                    <div class="table__actions">
-                        {% if user.is_admin %}
-                        <form method="post" action="{{ url_for('admin_revoke', user_id=user.id) }}">
-                            <button
-                                type="submit"
-                                class="btn btn--ghost btn--danger"
-                                {% if user.id == current_user.id %}disabled title="Нельзя снять права с себя"{% endif %}
-                            >
-                                Снять админа
-                            </button>
-                        </form>
-                        {% else %}
-                        <form method="post" action="{{ url_for('admin_grant', user_id=user.id) }}">
-                            <button type="submit" class="btn btn--ghost">Сделать админом</button>
-                        </form>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+            </article>
             {% endfor %}
         </div>
     </div>
 </section>
+
+<style>
+    .admin-users__header { display:flex; gap:2rem; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+    .admin-users__stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:0.75rem; min-width:320px; }
+    .stat-card { padding:0.9rem 1rem; border:1px solid #e5e7eb; border-radius:10px; background:#fafafa; }
+    .stat-card__label { font-size:0.85rem; color:#6b7280; }
+    .stat-card__value { font-size:1.5rem; font-weight:700; margin-top:0.2rem; }
+    .admin-users__controls { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:1.5rem 0; flex-wrap:wrap; }
+    .btn-group { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .search-box input { padding:0.6rem 0.8rem; border:1px solid #e5e7eb; border-radius:8px; min-width:240px; }
+    .admin-users__grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:1rem; }
+    .user-card { border:1px solid #e5e7eb; border-radius:12px; padding:1rem; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.03); display:flex; flex-direction:column; gap:0.8rem; transition:transform 0.1s ease, box-shadow 0.1s ease; }
+    .user-card:hover { transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,0.06); }
+    .user-card__top { display:flex; gap:0.8rem; align-items:flex-start; }
+    .user-card__avatar { width:42px; height:42px; border-radius:50%; background:#111827; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+    .user-card__info { flex:1; min-width:0; }
+    .user-card__name { font-weight:700; }
+    .user-card__email { color:#6b7280; word-break:break-all; }
+    .user-card__meta { color:#9ca3af; font-size:0.85rem; margin-top:0.15rem; }
+    .user-card__actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .badge--success { background:#d1fae5; color:#065f46; }
+    .filter-btn--active { border-color:#111827; color:#111827; }
+    @media (max-width: 640px) { .admin-users__header { flex-direction:column; } }
+</style>
+
+<script>
+    const filterButtons = document.querySelectorAll(".filter-btn");
+    const cards = Array.from(document.querySelectorAll(".user-card"));
+    const searchInput = document.getElementById("user-search");
+
+    function applyFilters() {
+        const active = document.querySelector(".filter-btn--active")?.dataset.filter || "all";
+        const query = (searchInput?.value || "").toLowerCase().trim();
+        cards.forEach((card) => {
+            const role = card.dataset.role;
+            const text = card.dataset.search || "";
+            const roleMatch = active === "all" || role === active;
+            const textMatch = !query || text.includes(query);
+            card.style.display = roleMatch && textMatch ? "" : "none";
+        });
+    }
+
+    filterButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            filterButtons.forEach((b) => b.classList.remove("filter-btn--active"));
+            btn.classList.add("filter-btn--active");
+            applyFilters();
+        });
+    });
+    searchInput?.addEventListener("input", applyFilters);
+</script>
 {% endblock %}
