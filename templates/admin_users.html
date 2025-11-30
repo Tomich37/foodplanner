@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Админка · Пользователи{% endblock %}
+
+{% block content %}
+<section class="admin-users">
+    <div class="container">
+        <h1>Управление администраторами</h1>
+        <p class="admin-users__subtitle">Назначайте и снимайте права администратора с пользователей.</p>
+
+        <div class="table">
+            <div class="table__row table__row--head">
+                <div class="table__cell">ID</div>
+                <div class="table__cell">E-mail</div>
+                <div class="table__cell">Имя</div>
+                <div class="table__cell">Статус</div>
+                <div class="table__cell">Действия</div>
+            </div>
+            {% for user in users %}
+            <div class="table__row">
+                <div class="table__cell">{{ user.id }}</div>
+                <div class="table__cell">{{ user.email }}</div>
+                <div class="table__cell">{{ user.full_name or "—" }}</div>
+                <div class="table__cell">
+                    {% if user.is_admin %}
+                    <span class="badge badge--success">Администратор</span>
+                    {% else %}
+                    <span class="badge">Пользователь</span>
+                    {% endif %}
+                </div>
+                <div class="table__cell">
+                    <div class="table__actions">
+                        {% if user.is_admin %}
+                        <form method="post" action="{{ url_for('admin_revoke', user_id=user.id) }}">
+                            <button
+                                type="submit"
+                                class="btn btn--ghost btn--danger"
+                                {% if user.id == current_user.id %}disabled title="Нельзя снять права с себя"{% endif %}
+                            >
+                                Снять админа
+                            </button>
+                        </form>
+                        {% else %}
+                        <form method="post" action="{{ url_for('admin_grant', user_id=user.id) }}">
+                            <button type="submit" class="btn btn--ghost">Сделать админом</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

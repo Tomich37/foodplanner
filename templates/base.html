@@ -27,6 +27,13 @@
                 class="nav__link {% if current_path.startswith('/menu') %}nav__link--active{% endif %}"
                 >Планы питания</a
             >
+            {% if current_user and current_user.is_admin %}
+            <a
+                href="{{ url_for('admin_users') }}"
+                class="nav__link {% if current_path.startswith('/admin') %}nav__link--active{% endif %}"
+                >Админка</a
+            >
+            {% endif %}
             {% if current_user %}
             <a
                 href="{{ url_for('profile') }}"

@@ -122,6 +122,15 @@
                         {% if step.image_path %}
                         <img src="{{ step.image_path }}" alt="Шаг {{ loop.index }}" class="recipe-step__preview" />
                         {% endif %}
+                        <input type="hidden" name="existing_step_images" value="{{ step.image_path or '' }}" />
+                        {% if step.image_path %}
+                        <div class="form-group form-group--inline">
+                            <label>
+                                <input type="checkbox" name="delete_step_images" value="{{ loop.index0 }}" />
+                                Удалить фото шага
+                            </label>
+                        </div>
+                        {% endif %}
                         <div class="form-group">
                             <label>Новое фото шага (опционально)</label>
                             <input type="file" name="step_images" accept="image/*" />
@@ -134,6 +143,7 @@
                             <label>Шаг 1</label>
                             <textarea name="steps" rows="3" required></textarea>
                         </div>
+                        <input type="hidden" name="existing_step_images" value="" />
                         <div class="form-group">
                             <label>Фото шага (опционально)</label>
                             <input type="file" name="step_images" accept="image/*" />
@@ -165,6 +175,7 @@
                 <label>Шаг ${stepCount}</label>
                 <textarea name="steps" rows="3" required placeholder="Опишите шаг ${stepCount}"></textarea>
             </div>
+            <input type="hidden" name="existing_step_images" value="" />
             <div class="form-group">
                 <label>Фото шага (опционально)</label>
                 <input type="file" name="step_images" accept="image/*" />

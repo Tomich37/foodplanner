@@ -122,18 +122,39 @@ class RecipeService:
         step_texts: Sequence[str],
         ingredients: Sequence[tuple[str, float]],
         step_images: Sequence[UploadFile] | None,
+        existing_step_images: Sequence[str] | None = None,
+        delete_step_images: set[int] | None = None,
     ) -> None:
+        """Пересобирает шаги и ингредиенты, сохраняя старые фото, если не выбрано новое."""
         recipe.steps.clear()
         recipe.ingredients.clear()
 
         images = list(step_images or [])
-        for idx, instruction in enumerate(step_texts, start=1):
-            image = images[idx - 1] if idx - 1 < len(images) else None
+        existing_images = list(existing_step_images or [])
+        delete_flags = delete_step_images or set()
+
+        for idx, raw_instruction in enumerate(step_texts, start=1):
+            instruction = (raw_instruction or "").strip()
+            if not instruction:
+                continue
+
+            new_upload = images[idx - 1] if idx - 1 < len(images) else None
+            existing_path = existing_images[idx - 1] if idx - 1 < len(existing_images) else None
+            delete_requested = (idx - 1) in delete_flags
+
+            image_path = None
+            if delete_requested:
+                image_path = None
+            elif new_upload and getattr(new_upload, "filename", ""):
+                image_path = await self.save_upload(new_upload)
+            elif existing_path:
+                image_path = existing_path
+
             recipe.steps.append(
                 RecipeStep(
-                    position=idx,
+                    position=len(recipe.steps) + 1,
                     instruction=instruction,
-                    image_path=await self.save_upload(image),
+                    image_path=image_path,
                 )
             )
 
@@ -269,6 +290,8 @@ async def update_recipe(
     title: str = Form(...),
     description: str = Form(""),
     steps: list[str] = Form(...),
+    existing_step_images: list[str] = Form([]),
+    delete_step_images: list[int] = Form([]),
     ingredient_names: list[str] = Form([]),
     ingredient_amounts: list[float] = Form([]),
     tags: list[str] = Form([]),
@@ -281,10 +304,10 @@ async def update_recipe(
     recipe = await recipe_service.load_recipe(session, recipe_id)
     recipe_service.ensure_can_manage(recipe, current_user)
 
-    step_texts = recipe_service.clean_steps(steps)
+    cleaned_steps = recipe_service.clean_steps(steps)
     ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts)
     selected_tags = recipe_service.normalize_tags(tags)
-    recipe_service.validate_common_fields(title, step_texts, ingredients)
+    recipe_service.validate_common_fields(title, cleaned_steps, ingredients)
 
     recipe.title = title.strip()
     recipe.description = description.strip() or None
@@ -294,7 +317,15 @@ async def update_recipe(
     if new_cover:
         recipe.image_path = new_cover
 
-    await recipe_service.fill_recipe(recipe, step_texts, ingredients, step_images)
+    delete_flags = {int(idx) for idx in delete_step_images} if delete_step_images else set()
+    await recipe_service.fill_recipe(
+        recipe,
+        steps,
+        ingredients,
+        step_images,
+        existing_step_images,
+        delete_flags,
+    )
 
     await session.commit()
     return RedirectResponse(url=f"/recipes/{recipe.id}", status_code=status.HTTP_303_SEE_OTHER)

@@ -6,7 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.core.config import STATIC_DIR, settings
 from app.db import base
 from app.db.session import engine
-from app.routers import auth, pages
+from app.routers import admin, auth, pages
 from app.routers import recipes, profile
 
 
@@ -20,6 +20,7 @@ def create_app() -> FastAPI:
     application.include_router(auth.router)
     application.include_router(recipes.router)
     application.include_router(profile.router)
+    application.include_router(admin.router)
 
     @application.on_event("startup")
     async def on_startup() -> None:
