@@ -152,7 +152,16 @@
                     {% endif %}
                 </div>
                 <button type="button" class="btn btn--ghost" id="add-step-btn">Добавить ещё шаг</button>
-                <button type="submit" class="btn btn--primary btn--full">Сохранить изменения</button>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn--primary">Сохранить изменения</button>
+                    <button
+                        type="button"
+                        class="btn btn--ghost"
+                        onclick="window.location.href='{{ url_for('recipe_detail', recipe_id=recipe.id) }}'"
+                    >
+                        Отмена
+                    </button>
+                </div>
             </form>
         </div>
     </div>
