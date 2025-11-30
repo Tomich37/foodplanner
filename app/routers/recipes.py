@@ -17,10 +17,13 @@ from app.core.config import STATIC_DIR, TEMPLATES_DIR
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models import Recipe, RecipeIngredient, RecipeStep, User
+from app.services.cover_resolver import recipe_cover_resolver
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 UPLOADS_DIR = STATIC_DIR / "uploads"
+# Глобальный helper в шаблонах для выбора обложки с учётом заглушек.
+templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 
 
 @dataclass(frozen=True)

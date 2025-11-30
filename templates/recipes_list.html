@@ -39,11 +39,7 @@
         <div class="recipes-grid">
             {% for recipe in recipes %}
             <article class="recipe-card">
-                <img
-                    src="{{ recipe.image_path or 'https://via.placeholder.com/300x200?text=Recipe' }}"
-                    alt="{{ recipe.title }}"
-                    class="recipe-card__image"
-                />
+                <img src="{{ cover_url(recipe) }}" alt="{{ recipe.title }}" class="recipe-card__image" />
                 <div class="recipe-card__body">
                     <div class="recipe-card__top">
                         <h3 class="recipe-card__title">{{ recipe.title }}</h3>

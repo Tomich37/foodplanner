@@ -17,9 +17,12 @@ from app.dependencies.users import get_current_user, get_current_user_required
 from app.models.menu import Menu, MenuDay, MenuMeal
 from app.models.recipe import Recipe
 from app.models.user import User
+from app.services.cover_resolver import recipe_cover_resolver
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+# Глобальный helper в шаблонах для выбора обложки с учётом заглушек.
+templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 
 
 @dataclass(frozen=True)

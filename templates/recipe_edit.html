@@ -37,9 +37,7 @@
                 </div>
                 <div class="form-group">
                     <label for="cover_image">Обложка рецепта</label>
-                    {% if recipe.image_path %}
-                    <img src="{{ recipe.image_path }}" alt="Обложка" class="recipe-step__preview" />
-                    {% endif %}
+                    <img src="{{ cover_url(recipe) }}" alt="Обложка" class="recipe-step__preview" />
                     <input type="file" id="cover_image" name="cover_image" accept="image/*" />
                     <small class="form-hint">Оставьте поле пустым, чтобы сохранить текущее изображение.</small>
                 </div>

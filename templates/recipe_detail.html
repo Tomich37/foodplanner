@@ -38,9 +38,7 @@
                 </div>
                 {% endif %}
             </div>
-            {% if recipe.image_path %}
-            <img src="{{ recipe.image_path }}" alt="{{ recipe.title }}" class="recipe-detail__cover" />
-            {% endif %}
+            <img src="{{ cover_url(recipe) }}" alt="{{ recipe.title }}" class="recipe-detail__cover" />
         </div>
         {% if recipe.ingredients %}
         <div class="recipe-ingredients">
