@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import random
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Sequence
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -13,87 +14,124 @@ from sqlalchemy.orm import selectinload
 from app.core.config import TEMPLATES_DIR
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
-from app.models.recipe import Recipe
 from app.models.menu import Menu, MenuDay, MenuMeal
+from app.models.recipe import Recipe
 from app.models.user import User
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-MEAL_TYPES = [
-    {"key": "breakfast", "label": "Завтрак"},
-    {"key": "lunch", "label": "Обед"},
-    {"key": "dinner", "label": "Ужин"},
-]
-MEAL_KEYS = {meal["key"] for meal in MEAL_TYPES}
+
+@dataclass(frozen=True)
+class MealType:
+    """Описывает тип приема пищи с машинным ключом и русским названием."""
+
+    key: str
+    label: str
 
 
-def _parse_selection(values: list[str], recipe_ids: set[int]) -> dict[tuple[int, str], int]:
-    parsed: dict[tuple[int, str], int] = {}
-    for value in values:
-        try:
-            day_str, meal_key, recipe_str = value.split(":")
-            day_number = int(day_str)
-            recipe_id = int(recipe_str)
-        except (ValueError, AttributeError):
-            continue
-        if meal_key not in MEAL_KEYS or recipe_id not in recipe_ids:
-            continue
-        parsed[(day_number, meal_key)] = recipe_id
-    return parsed
+@dataclass
+class MenuPlanResult:
+    """Результат построения меню: план по дням, список покупок и выбор пользователя."""
+
+    plan: list[dict[str, Any]]
+    shopping_list: list[dict[str, Any]]
+    selection_map: dict[tuple[int, str], int]
 
 
-def _split_recipes_by_meal(recipes: list[Recipe]) -> dict[str, list[Recipe]]:
-    mapping: dict[str, list[Recipe]] = {meal["key"]: [] for meal in MEAL_TYPES}
-    for recipe in recipes:
-        recipe_tags = recipe.tags or []
-        for meal_key in mapping:
-            if meal_key in recipe_tags:
-                mapping[meal_key].append(recipe)
-    return mapping
+class MenuPlanner:
+    """Инкапсулирует логику генерации меню (SRP) и позволяет расширять список приемов пищи (OCP)."""
 
+    def __init__(self, meal_types: Sequence[MealType]):
+        # Сохраняем доступные типы приемов пищи и готовим набор ключей для валидации ввода.
+        self.meal_types: tuple[MealType, ...] = tuple(meal_types)
+        self.meal_keys: set[str] = {meal.key for meal in meal_types}
 
-def _build_menu(
-    recipes: list[Recipe],
-    grouped: dict[str, list[Recipe]],
-    days: int,
-    selection_map: dict[tuple[int, str], int],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[tuple[int, str], int]]:
-    recipe_by_id = {recipe.id: recipe for recipe in recipes}
-    updated_selection: dict[tuple[int, str], int] = {}
-    menu_plan: list[dict[str, Any]] = []
-    shopping: dict[str, dict[str, float]] = {}
-
-    for day in range(1, days + 1):
-        meals: list[dict[str, Any]] = []
-        for meal in MEAL_TYPES:
-            key = (day, meal["key"])
-            selected_recipe = None
-            selected_id = selection_map.get(key)
-            if selected_id is not None:
-                selected_recipe = recipe_by_id.get(selected_id)
-
-            candidates = grouped.get(meal["key"]) or recipes
-            if not candidates:
+    def parse_selection(self, values: Sequence[str], recipe_ids: set[int]) -> dict[tuple[int, str], int]:
+        """Разбирает выбор рецептов из строки запроса/формы и отбрасывает мусорные значения."""
+        parsed: dict[tuple[int, str], int] = {}
+        for value in values:
+            try:
+                day_str, meal_key, recipe_str = value.split(":")
+                day_number = int(day_str)
+                recipe_id = int(recipe_str)
+            except (ValueError, AttributeError):
+                # Если формат не совпадает, просто пропускаем запись, не ломая общий поток.
                 continue
-            if selected_recipe is None:
-                selected_recipe = random.choice(candidates)
+            if meal_key not in self.meal_keys or recipe_id not in recipe_ids:
+                continue
+            parsed[(day_number, meal_key)] = recipe_id
+        return parsed
 
-            updated_selection[key] = selected_recipe.id
-            meals.append({"meal": meal["label"], "meal_key": meal["key"], "recipe": selected_recipe})
+    def split_recipes_by_meal(self, recipes: Sequence[Recipe]) -> dict[str, list[Recipe]]:
+        """Группирует рецепты по тегам приемов пищи для более точного выбора."""
+        mapping: dict[str, list[Recipe]] = {meal.key: [] for meal in self.meal_types}
+        for recipe in recipes:
+            recipe_tags = recipe.tags or []
+            for meal_key in mapping:
+                if meal_key in recipe_tags:
+                    mapping[meal_key].append(recipe)
+        return mapping
 
-            for ingredient in selected_recipe.ingredients:
-                name = (ingredient.name or "").strip()
-                if not name:
+    def build_menu(
+        self,
+        recipes: list[Recipe],
+        grouped: dict[str, list[Recipe]],
+        days: int,
+        selection_map: dict[tuple[int, str], int],
+    ) -> MenuPlanResult:
+        """Формирует меню на заданное количество дней и собирает список покупок."""
+        recipe_by_id = {recipe.id: recipe for recipe in recipes}
+        updated_selection: dict[tuple[int, str], int] = {}
+        menu_plan: list[dict[str, Any]] = []
+        shopping: dict[str, dict[str, float]] = {}
+
+        for day in range(1, days + 1):
+            meals: list[dict[str, Any]] = []
+            for meal in self.meal_types:
+                key = (day, meal.key)
+                selected_recipe = recipe_by_id.get(selection_map.get(key, 0))
+
+                candidates = grouped.get(meal.key) or recipes
+                if not candidates:
                     continue
-                key_name = name.lower()
-                entry = shopping.setdefault(key_name, {"name": name, "amount": 0.0})
-                entry["amount"] += float(ingredient.amount or 0)
+                if selected_recipe is None:
+                    # Если пользователь не выбрал рецепт – подставляем случайный подходящий вариант.
+                    selected_recipe = random.choice(candidates)
 
-        menu_plan.append({"day": day, "meals": meals})
+                updated_selection[key] = selected_recipe.id
+                meals.append({"meal": meal.label, "meal_key": meal.key, "recipe": selected_recipe})
 
-    shopping_list = sorted(shopping.values(), key=lambda item: item["name"])
-    return menu_plan, shopping_list, updated_selection
+                # Накопление ингредиентов для списка покупок.
+                for ingredient in selected_recipe.ingredients:
+                    name = (ingredient.name or "").strip()
+                    if not name:
+                        continue
+                    key_name = name.lower()
+                    entry = shopping.setdefault(key_name, {"name": name, "amount": 0.0})
+                    entry["amount"] += float(ingredient.amount or 0)
+
+            menu_plan.append({"day": day, "meals": meals})
+
+        shopping_list = sorted(shopping.values(), key=lambda item: item["name"])
+        return MenuPlanResult(plan=menu_plan, shopping_list=shopping_list, selection_map=updated_selection)
+
+    @staticmethod
+    def selection_from_menu(menu: Menu) -> dict[tuple[int, str], int]:
+        """Извлекает из сохраненного меню выбор рецептов в виде словаря для дальнейшей работы."""
+        mapping: dict[tuple[int, str], int] = {}
+        for day_obj in menu.days:
+            for meal_obj in day_obj.meals:
+                mapping[(day_obj.day_number, meal_obj.meal_type)] = meal_obj.recipe_id
+        return mapping
+
+
+MEAL_TYPES = (
+    MealType(key="breakfast", label="Завтрак"),
+    MealType(key="lunch", label="Обед"),
+    MealType(key="dinner", label="Ужин"),
+)
+menu_planner = MenuPlanner(MEAL_TYPES)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -102,59 +140,64 @@ async def index(
     current_user: User | None = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    """Главная страница с подборками и последними рецептами."""
+    # Статичные категории для быстрого перехода по разделам.
     categories = [
-        {"key": "breakfast", "label": "Завтраки", "icon": "🍳"},
-        {"key": "lunch", "label": "Обеды", "icon": "🍲"},
-        {"key": "dinner", "label": "Ужины", "icon": "🍽"},
-        {"key": "snack", "label": "Перекусы", "icon": "🍪"},
-        {"key": "pp", "label": "Полезное", "icon": "🥗"},
+        {"key": "breakfast", "label": "Завтраки", "icon": "\U0001F963"},
+        {"key": "lunch", "label": "Обеды", "icon": "\U0001F372"},
+        {"key": "dinner", "label": "Ужины", "icon": "\U0001F37D"},
+        {"key": "snack", "label": "Перекусы", "icon": "\U0001F96A"},
+        {"key": "pp", "label": "Полезное питание", "icon": "\U0001F957"},
     ]
 
+    # Пример недельного меню для демонстрации возможностей сервиса.
     weekly_menu = {
-        "breakfast": "Тост с авокадо и яйцом",
-        "lunch": "Томатный суп и сэндвич с индейкой",
-        "dinner": "Запечённый лосось с овощами",
+        "breakfast": "Овсянка с ягодами и орехами",
+        "lunch": "Куриный суп с овощами и лапшой",
+        "dinner": "Запеченная рыба с картофелем",
     }
 
+    # Популярные рецепты для блока «что попробовать».
     popular_recipes = [
         {
             "id": 1,
-            "name": "Быстрая гранола с йогуртом",
+            "name": "Омлет с томатами и зеленью",
             "type": "Завтрак",
             "pp": True,
-            "time": "15 мин",
+            "time": "15 минут",
             "kcal": 320,
             "image_url": "https://via.placeholder.com/300x200?text=Breakfast",
         },
         {
             "id": 2,
-            "name": "Кремовый тыквенный суп",
+            "name": "Сливочный суп с грибами",
             "type": "Обед",
             "pp": True,
-            "time": "30 мин",
+            "time": "30 минут",
             "kcal": 280,
             "image_url": "https://via.placeholder.com/300x200?text=Soup",
         },
         {
             "id": 3,
-            "name": "Пряная куриная грудка",
+            "name": "Курица в соевом соусе с рисом",
             "type": "Ужин",
             "pp": True,
-            "time": "25 мин",
+            "time": "25 минут",
             "kcal": 350,
             "image_url": "https://via.placeholder.com/300x200?text=Chicken",
         },
         {
             "id": 4,
-            "name": "Энергетические конфеты",
+            "name": "Творожный десерт с медом",
             "type": "Перекус",
             "pp": True,
-            "time": "5 мин",
+            "time": "5 минут",
             "kcal": 180,
             "image_url": "https://via.placeholder.com/300x200?text=Snack",
         },
     ]
 
+    # Забираем последние рецепты из базы для блока «новинки».
     result = await session.execute(
         select(Recipe)
         .options(selectinload(Recipe.author))
@@ -182,8 +225,10 @@ async def menu_list(
     current_user: User | None = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    """Страница со списком сохраненных меню пользователя."""
     saved_menus: list[Menu] = []
     if current_user:
+        # Показываем меню конкретного пользователя в порядке убывания даты создания.
         result = await session.execute(
             select(Menu)
             .where(Menu.user_id == current_user.id)
@@ -215,6 +260,8 @@ async def menu_builder(
     current_user: User | None = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
+    """Конструктор меню: выбор рецептов, перетасовка и загрузка сохраненных меню."""
+    # Грузим все рецепты с ингредиентами и автором, чтобы сразу использовать их в конструкторе.
     result = await session.execute(
         select(Recipe)
         .options(selectinload(Recipe.ingredients), selectinload(Recipe.author))
@@ -222,16 +269,19 @@ async def menu_builder(
     )
     recipes = result.scalars().all()
     recipe_ids = {recipe.id for recipe in recipes}
-    grouped_recipes = _split_recipes_by_meal(recipes)
+    grouped_recipes = menu_planner.split_recipes_by_meal(recipes)
 
-    selection_map = _parse_selection(selection, recipe_ids)
+    # Разбираем текущие выборы пользователя из query-параметров.
+    selection_map = menu_planner.parse_selection(selection, recipe_ids)
 
-    if shuffle_day and shuffle_meal in MEAL_KEYS:
+    # Если нужно «перемешать» конкретный прием пищи, убираем сохраненный выбор.
+    if shuffle_day and shuffle_meal in menu_planner.meal_keys:
         selection_map.pop((shuffle_day, shuffle_meal), None)
 
+    # Принудительная установка выбранного рецепта.
     if (
         set_day
-        and set_meal in MEAL_KEYS
+        and set_meal in menu_planner.meal_keys
         and recipe_id is not None
         and recipe_id in recipe_ids
     ):
@@ -242,7 +292,7 @@ async def menu_builder(
 
     if menu_id:
         if not current_user:
-            error_message = "Войдите, чтобы открыть сохранённое меню."
+            error_message = "Нужна авторизация, чтобы открыть сохранённое меню."
         else:
             current_menu = await session.get(
                 Menu,
@@ -257,25 +307,23 @@ async def menu_builder(
                 error_message = "Меню не найдено или недоступно."
                 current_menu = None
             else:
-                stored_map: dict[tuple[int, str], int] = {}
-                for day_obj in current_menu.days:
-                    for meal_obj in day_obj.meals:
-                        stored_map[(day_obj.day_number, meal_obj.meal_type)] = meal_obj.recipe_id
+                # Подмешиваем сохраненный выбор к текущему состоянию конструктора.
+                stored_map = menu_planner.selection_from_menu(current_menu)
                 stored_map.update(selection_map)
                 selection_map = stored_map
                 if not days:
                     days = current_menu.days_count
 
-    menu_plan: list[dict[str, Any]] = []
-    shopping_list: list[dict[str, Any]] = []
+    menu_plan_result: MenuPlanResult | None = None
 
     if days:
         if not recipes:
-            error_message = error_message or "Добавьте хотя бы один рецепт, чтобы построить меню."
+            error_message = error_message or "Рецептов пока нет, составить меню невозможно."
         else:
-            menu_plan, shopping_list, selection_map = _build_menu(
+            menu_plan_result = menu_planner.build_menu(
                 recipes, grouped_recipes, days, selection_map
             )
+            selection_map = menu_plan_result.selection_map
 
     selection_values = [
         f"{day}:{meal}:{recipe_id}"
@@ -288,8 +336,8 @@ async def menu_builder(
             "request": request,
             "current_user": current_user,
             "selected_days": days,
-            "menu_plan": menu_plan,
-            "shopping_list": shopping_list,
+            "menu_plan": menu_plan_result.plan if menu_plan_result else [],
+            "shopping_list": menu_plan_result.shopping_list if menu_plan_result else [],
             "error_message": error_message,
             "has_recipes": bool(recipes),
             "selection_values": selection_values,
@@ -309,10 +357,12 @@ async def save_menu(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user_required),
 ):
+    """Сохраняет меню пользователя и обновляет записи в базе."""
     clean_title = title.strip()
     if not clean_title:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Укажите название меню.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Название меню не может быть пустым.")
 
+    # Подгружаем рецепты вместе с ингредиентами для корректного построения меню.
     result = await session.execute(
         select(Recipe)
         .options(selectinload(Recipe.ingredients))
@@ -320,12 +370,12 @@ async def save_menu(
     )
     recipes = result.scalars().all()
     if not recipes:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет рецептов для сохранения меню.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет рецептов для составления меню.")
 
     recipe_ids = {recipe.id for recipe in recipes}
-    selection_map = _parse_selection(selection, recipe_ids)
-    grouped_recipes = _split_recipes_by_meal(recipes)
-    menu_plan, _, selection_map = _build_menu(recipes, grouped_recipes, days, selection_map)
+    selection_map = menu_planner.parse_selection(selection, recipe_ids)
+    grouped_recipes = menu_planner.split_recipes_by_meal(recipes)
+    menu_plan_result = menu_planner.build_menu(recipes, grouped_recipes, days, selection_map)
 
     if menu_id:
         menu = await session.get(Menu, menu_id)
@@ -341,7 +391,7 @@ async def save_menu(
         session.add(menu)
         await session.flush()
 
-    for day in menu_plan:
+    for day in menu_plan_result.plan:
         day_obj = MenuDay(day_number=day["day"], menu_id=menu.id)
         session.add(day_obj)
         await session.flush()
@@ -360,6 +410,7 @@ async def delete_menu(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_user_required),
 ):
+    """Удаляет сохраненное меню, если оно принадлежит текущему пользователю."""
     menu = await session.get(Menu, menu_id)
     if not menu or menu.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Меню не найдено")

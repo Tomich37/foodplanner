@@ -1,4 +1,6 @@
-﻿from typing import Optional
+from __future__ import annotations
+
+from typing import Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -11,6 +13,7 @@ from app.models.user import User
 async def get_current_user(
     request: Request, session: AsyncSession = Depends(get_session)
 ) -> Optional[User]:
+    """Возвращает пользователя из сессии, если он авторизован, иначе None."""
     user_id = request.session.get("user_id")
     if not user_id:
         return None
@@ -21,6 +24,9 @@ async def get_current_user(
 async def get_current_user_required(
     current_user: Optional[User] = Depends(get_current_user),
 ) -> User:
+    """Обязательный вариант: бросает 401, если сессия пустая."""
     if current_user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Требуется авторизация")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Требуется авторизация"
+        )
     return current_user
