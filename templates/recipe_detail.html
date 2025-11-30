@@ -7,7 +7,12 @@
     <div class="container recipe-detail__card">
         <div class="recipe-detail__header">
             <div>
-                <p class="recipe-detail__meta">Автор: {{ recipe.author.full_name or recipe.author.email }}</p>
+                <p class="recipe-detail__meta">
+                    Автор:
+                    <a href="{{ url_for('user_profile', user_id=recipe.author.id) }}" class="link">
+                        {{ recipe.author.full_name or recipe.author.email }}
+                    </a>
+                </p>
                 <h1>{{ recipe.title }}</h1>
                 {% if recipe.description %}
                 <p class="recipe-detail__description">{{ recipe.description }}</p>

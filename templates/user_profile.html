@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль {{ profile_user.full_name or profile_user.email }} · FoodPlanner{% endblock %}
+
+{% block content %}
+<section class="user-profile">
+    <div class="container">
+        <div class="user-profile__header">
+            <div class="user-profile__avatar">
+                {{ (profile_user.full_name or profile_user.email)[0]|upper }}
+            </div>
+            <div class="user-profile__info">
+                <p class="eyebrow">Пользователь</p>
+                <h1>{{ profile_user.full_name or profile_user.email }}</h1>
+                <p class="user-profile__email">{{ profile_user.email }}</p>
+                <div class="user-profile__meta">
+                    <span>На сайте с {{ profile_user.created_at.strftime('%d.%m.%Y') if profile_user.created_at else '—' }}</span>
+                    {% if profile_user.is_admin %}
+                    <span class="badge badge--success">Администратор</span>
+                    {% endif %}
+                    {% if is_self %}
+                    <span class="badge">Это вы</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="user-profile__stats">
+                <div class="stat-card">
+                    <div class="stat-card__label">Рецептов</div>
+                    <div class="stat-card__value">{{ stats.total_recipes }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card__label">Меню</div>
+                    <div class="stat-card__value">{{ profile_user.menus | length if profile_user.menus else 0 }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="user-profile__actions">
+            {% if current_user %}
+            <a href="{{ url_for('recipes_new') }}" class="btn btn--primary btn--small">Добавить рецепт</a>
+            {% endif %}
+            {% if is_self %}
+            <a href="{{ url_for('profile') }}" class="btn btn--ghost btn--small">Настройки профиля</a>
+            {% endif %}
+        </div>
+
+        <div class="user-profile__section">
+            <div class="user-profile__section-head">
+                <h2>Рецепты автора</h2>
+                <span class="muted">Всего: {{ stats.total_recipes }}</span>
+            </div>
+            {% if recipes %}
+            <div class="recipes-grid">
+                {% for recipe in recipes %}
+                <article class="recipe-card">
+                    <img src="{{ cover_url(recipe) }}" alt="{{ recipe.title }}" class="recipe-card__image" />
+                    <div class="recipe-card__body">
+                        <div class="recipe-card__top">
+                            <h3 class="recipe-card__title">{{ recipe.title }}</h3>
+                            {% if recipe.tags %}
+                            <div class="recipe-card__tags">
+                                {% for tag in recipe.tags %}
+                                <span class="badge badge--tag">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if recipe.description %}
+                        <p class="recipe-card__description">{{ recipe.description }}</p>
+                        {% endif %}
+                        <div class="recipe-card__meta">
+                            <span>Шагов: {{ recipe.steps | length }}</span>
+                            <span>Ингредиентов: {{ recipe.ingredients | length }}</span>
+                        </div>
+                        <div class="recipe-card__actions">
+                            <a href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}" class="btn btn--small btn--primary">Открыть</a>
+                            {% if current_user and (current_user.is_admin or current_user.id == recipe.user_id) %}
+                            <a href="{{ url_for('recipes_edit', recipe_id=recipe.id) }}" class="btn btn--small btn--ghost">Редактировать</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">Пока нет ни одного рецепта.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<style>
+    .user-profile__header { display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; border:1px solid #e5e7eb; border-radius:12px; padding:1.2rem; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.03); }
+    .user-profile__avatar { width:64px; height:64px; border-radius:50%; background:#111827; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:700; }
+    .user-profile__info { flex:1; min-width:240px; }
+    .user-profile__email { color:#6b7280; }
+    .user-profile__meta { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.4rem; color:#6b7280; }
+    .user-profile__stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:0.6rem; min-width:200px; }
+    .user-profile__actions { display:flex; gap:0.6rem; margin:1rem 0; flex-wrap:wrap; }
+    .user-profile__section { margin-top:1rem; }
+    .user-profile__section-head { display:flex; align-items:center; gap:0.5rem; }
+    .muted { color:#9ca3af; }
+    .recipes-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:1rem; }
+    .recipe-card { border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 4px 12px rgba(0,0,0,0.03); display:flex; flex-direction:column; }
+    .recipe-card__image { width:100%; height:160px; object-fit:cover; }
+    .recipe-card__body { padding:0.9rem; display:flex; flex-direction:column; gap:0.4rem; }
+    .recipe-card__top { display:flex; align-items:flex-start; justify-content:space-between; gap:0.5rem; }
+    .recipe-card__tags { display:flex; flex-wrap:wrap; gap:0.3rem; }
+    .recipe-card__meta { display:flex; gap:0.6rem; color:#6b7280; font-size:0.9rem; }
+    .recipe-card__actions { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.4rem; }
+    .stat-card { padding:0.8rem 1rem; border:1px solid #e5e7eb; border-radius:10px; background:#fafafa; }
+    .stat-card__label { font-size:0.85rem; color:#6b7280; }
+    .stat-card__value { font-size:1.4rem; font-weight:700; margin-top:0.1rem; }
+</style>
+{% endblock %}

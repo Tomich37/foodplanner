@@ -379,3 +379,45 @@ async def delete_menu(
     await session.delete(menu)
     await session.commit()
     return RedirectResponse(url="/menu", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/users/{user_id}", response_class=HTMLResponse, name="user_profile")
+async def user_profile(
+    request: Request,
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user),
+):
+    """Публичная страница пользователя со статистикой и списком его рецептов."""
+    result = await session.execute(
+        select(User)
+        .where(User.id == user_id)
+        .options(
+            selectinload(User.recipes).selectinload(Recipe.author),
+            selectinload(User.recipes).selectinload(Recipe.steps),
+            selectinload(User.recipes).selectinload(Recipe.ingredients),
+            selectinload(User.menus),
+        )
+    )
+    profile_user = result.scalar_one_or_none()
+    if not profile_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+
+    recipes = sorted(profile_user.recipes, key=lambda r: r.created_at or 0, reverse=True)
+    stats = {
+        "total_recipes": len(recipes),
+        "admin": profile_user.is_admin,
+        "joined": profile_user.created_at,
+    }
+
+    return templates.TemplateResponse(
+        "user_profile.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "profile_user": profile_user,
+            "recipes": recipes,
+            "stats": stats,
+            "is_self": current_user.id == profile_user.id if current_user else False,
+        },
+    )
