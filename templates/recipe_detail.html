@@ -65,7 +65,12 @@
                     <h3>Шаг {{ loop.index }}</h3>
                     <p>{{ step.instruction }}</p>
                     {% if step.image_path %}
-                    <img src="{{ step.image_path }}" alt="Шаг {{ loop.index }}" />
+                    <img
+                        src="{{ step.image_path }}"
+                        alt="Шаг {{ loop.index }}"
+                        class="recipe-step-item__image"
+                        data-full="{{ step.image_path }}"
+                    />
                     {% endif %}
                 </div>
             </li>
@@ -73,4 +78,37 @@
         </ol>
     </div>
 </section>
+<script>
+    const stepImages = document.querySelectorAll(".recipe-step-item__image");
+    const modalTemplate = `
+        <div class="image-modal" id="image-modal">
+            <button class="image-modal__close" aria-label="Закрыть">&times;</button>
+            <img src="" alt="Просмотр изображения" />
+        </div>
+    `;
+    let modal;
+
+    function openModal(src) {
+        if (!modal) {
+            document.body.insertAdjacentHTML("beforeend", modalTemplate);
+            modal = document.getElementById("image-modal");
+            modal.addEventListener("click", (event) => {
+                if (
+                    event.target === modal ||
+                    event.target.classList.contains("image-modal__close")
+                ) {
+                    modal.classList.remove("image-modal--visible");
+                }
+            });
+        }
+        const img = modal.querySelector("img");
+        img.src = src;
+        modal.classList.add("image-modal--visible");
+    }
+
+    stepImages.forEach((img) => {
+        img.style.cursor = "zoom-in";
+        img.addEventListener("click", () => openModal(img.dataset.full));
+    });
+</script>
 {% endblock %}

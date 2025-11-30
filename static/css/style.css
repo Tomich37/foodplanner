@@ -1010,10 +1010,22 @@ body {
     padding: 20px;
 }
 
+.recipe-step-item__body {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.recipe-step-item__body p {
+    flex: 1;
+    margin: 0;
+}
+
 .recipe-step-item__body img {
-    width: 100%;
+    width: 200px;
+    max-width: 40%;
     border-radius: var(--radius-md);
-    margin-top: 12px;
+    object-fit: cover;
 }
 
 /* forms & inputs enhancements */
@@ -1090,4 +1102,54 @@ textarea:focus {
     .hero {
         padding-top: 24px;
     }
+
+    .recipe-step-item__body {
+        flex-direction: column;
+    }
+
+    .recipe-step-item__body img {
+        width: 100%;
+        max-width: 100%;
+        margin-top: 8px;
+    }
+}
+
+/* modal image viewer */
+
+.image-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.image-modal.image-modal--visible {
+    display: flex;
+    opacity: 1;
+}
+
+.image-modal img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+}
+
+.image-modal__close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
 }
