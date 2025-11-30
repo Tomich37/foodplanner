@@ -107,12 +107,14 @@ class RecipeService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Рецепт не найден")
         return recipe
 
-    def ensure_owner(self, recipe: Recipe, current_user: User):
-        if recipe.user_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Рецепт доступен только автору",
-            )
+    def ensure_can_manage(self, recipe: Recipe, current_user: User):
+        """Проверяет права: автор или администратор могут редактировать/удалять рецепт."""
+        if current_user.is_admin or recipe.user_id == current_user.id:
+            return
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Рецепт доступен только автору или администратору",
+        )
 
     async def fill_recipe(
         self,
@@ -247,7 +249,7 @@ async def edit_recipe(
 ):
     """Редактор рецепта (доступен только автору)."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
-    recipe_service.ensure_owner(recipe, current_user)
+    recipe_service.ensure_can_manage(recipe, current_user)
 
     return templates.TemplateResponse(
         "recipe_edit.html",
@@ -277,7 +279,7 @@ async def update_recipe(
 ):
     """Обновляет рецепт: текст, шаги, ингредиенты, изображения."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
-    recipe_service.ensure_owner(recipe, current_user)
+    recipe_service.ensure_can_manage(recipe, current_user)
 
     step_texts = recipe_service.clean_steps(steps)
     ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts)
@@ -307,7 +309,7 @@ async def delete_recipe(
 ):
     """Удаляет рецепт автора."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
-    recipe_service.ensure_owner(recipe, current_user)
+    recipe_service.ensure_can_manage(recipe, current_user)
     await session.delete(recipe)
     await session.commit()
     return RedirectResponse(url="/recipes", status_code=status.HTTP_303_SEE_OTHER)

@@ -33,6 +33,12 @@ def create_app() -> FastAPI:
                     "ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}'::text[]"
                 )
             )
+            await conn.execute(
+                text(
+                    "ALTER TABLE IF EXISTS users "
+                    "ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
 
     return application
 

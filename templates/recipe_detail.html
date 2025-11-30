@@ -21,7 +21,7 @@
                     {% endfor %}
                 </div>
                 {% endif %}
-                {% if current_user and recipe.user_id == current_user.id %}
+                {% if current_user and (recipe.user_id == current_user.id or current_user.is_admin) %}
                 <div class="recipe-detail__actions">
                     <a
                         href="{{ url_for('recipes_edit', recipe_id=recipe.id) }}"
