@@ -50,7 +50,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 0;
+    padding: 14px 15px;
 }
 
 .header__profile {
@@ -126,21 +126,23 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 18px;
-    border-radius: 999px;
-    border: 1px solid transparent;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
     font-size: 14px;
     line-height: 1;
     cursor: pointer;
     text-decoration: none;
     transition: background 0.15s ease, transform 0.08s ease,
-        box-shadow 0.15s ease, border-color 0.15s ease;
+        box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    height: 40px;
 }
 
 .btn--primary {
     background: var(--accent);
     color: #ffffff;
-    box-shadow: 0 8px 20px rgba(47, 127, 95, 0.3);
+    border-color: var(--accent);
+    box-shadow: 0 8px 20px rgba(47, 127, 95, 0.18);
 }
 
 .btn--primary:hover {
@@ -170,8 +172,18 @@ body {
 }
 
 .btn--small {
-    padding: 8px 14px;
+    padding: 8px 12px;
     font-size: 13px;
+    height: 36px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 12px;
+    margin-bottom: 12px;
 }
 
 /* hero */
@@ -436,10 +448,10 @@ body {
 }
 
 .menu-planner__actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 12px;
-    align-items: flex-end;
-    flex-wrap: wrap;
+    align-items: end;
 }
 
 .menu-planner__subtitle {
@@ -449,9 +461,10 @@ body {
 }
 
 .menu-save-form {
-    display: flex;
-    gap: 12px;
-    align-items: flex-end;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
     margin-bottom: 24px;
 }
 
@@ -461,6 +474,10 @@ body {
     padding: 10px 12px;
     font-size: 15px;
     min-width: 220px;
+}
+
+.saved-menu-card__actions .btn {
+    min-width: 120px;
 }
 
 .menu-save-hint {
@@ -969,7 +986,7 @@ body {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-    align-items: center;
+    /* align-items: center; */
 }
 
 .recipe-detail__cover {
@@ -997,6 +1014,65 @@ body {
     width: 100%;
     border-radius: var(--radius-md);
     margin-top: 12px;
+}
+
+/* forms & inputs enhancements */
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 12px;
+}
+
+select,
+input[type="number"],
+input[type="text"],
+input[type="search"],
+textarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-family: var(--font-main);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: #fff;
+}
+
+select {
+    background: #fff
+        url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23222222' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        no-repeat right 12px center;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 36px;
+}
+
+select:focus,
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(47, 127, 95, 0.15);
+}
+
+.ingredient-row select {
+    min-width: 120px;
+}
+
+.form-group--inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile__form .form-group {
+    margin-bottom: 14px;
+}
+
+.profile__form input[type="password"] {
+    width: 100%;
 }
 
 /* adaptive */
