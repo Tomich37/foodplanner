@@ -8,7 +8,7 @@ from typing import Iterable, Sequence
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import Text, cast, select
+from sqlalchemy import cast, select, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -182,7 +182,7 @@ class RecipeService:
             array(selected_tags, type_=ARRAY(Text())),
             ARRAY(Text()),
         )
-        return query.where(Recipe.tags.contains(tag_array))
+        return query.where(cast(Recipe.tags, ARRAY(Text())).contains(tag_array))
 
 
 RECIPE_TAGS = (
