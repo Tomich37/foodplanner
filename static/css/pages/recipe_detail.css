@@ -1,0 +1,146 @@
+.recipe-detail {
+    padding: 48px 0 64px;
+}
+
+.recipe-detail__card {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: 32px;
+    box-shadow: var(--shadow-soft);
+}
+
+.recipe-detail__header {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.recipe-detail__meta {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.recipe-detail__description {
+    color: var(--text-muted);
+    max-width: 520px;
+}
+
+.recipe-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.recipe-ingredients {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    background: #fff;
+}
+
+.recipe-ingredients ul {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.recipe-ingredients li {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+}
+
+.recipe-ingredients__amount {
+    font-weight: 600;
+}
+
+.recipe-detail__actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.recipe-detail__cover {
+    width: 320px;
+    border-radius: var(--radius-lg);
+    object-fit: cover;
+}
+
+.recipe-steps {
+    list-style: none;
+    padding: 0;
+    margin: 32px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.recipe-step-item {
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 20px;
+}
+
+.recipe-step-item__body {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.recipe-step-item__body p {
+    flex: 1;
+    margin: 0;
+}
+
+.recipe-step-item__body img {
+    width: 200px;
+    max-width: 40%;
+    border-radius: var(--radius-md);
+    object-fit: cover;
+}
+
+.image-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.image-modal.image-modal--visible {
+    display: flex;
+    opacity: 1;
+}
+
+.image-modal img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: var(--radius-lg);
+}
+
+.image-modal__close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+}
+

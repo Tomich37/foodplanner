@@ -1,0 +1,138 @@
+.admin-users__header {
+    display: flex;
+    gap: 2rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.admin-users__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    min-width: 320px;
+}
+
+.stat-card {
+    padding: 0.9rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+.stat-card__label {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.stat-card__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 0.2rem;
+}
+
+.admin-users__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.search-box input {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    min-width: 240px;
+}
+
+.admin-users__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.user-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.user-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+}
+
+.user-card__top {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+}
+
+.user-card__avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #111827;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.user-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-card__name {
+    font-weight: 700;
+}
+
+.user-card__email {
+    color: #6b7280;
+    word-break: break-all;
+}
+
+.user-card__meta {
+    color: #9ca3af;
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+}
+
+.user-card__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.badge--success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.filter-btn--active {
+    border-color: #111827;
+    color: #111827;
+}
+
+@media (max-width: 640px) {
+    .admin-users__header {
+        flex-direction: column;
+    }
+}
+
