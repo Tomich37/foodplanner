@@ -397,6 +397,29 @@ body {
     flex-wrap: wrap;
     margin-bottom: 20px;
 }
+.recipes-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 260px;
+}
+.recipes-search input[type="search"] {
+    min-width: 260px;
+    flex: 1;
+}
+.recipes-search__actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.recipes-filters__tags {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
 
 .recipes-grid {
     display: grid;

@@ -8,11 +8,10 @@ from typing import Iterable, Sequence
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import cast, select, String, Text
+from sqlalchemy import cast, func, or_, select, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import func
 
 from app.core.config import STATIC_DIR, TEMPLATES_DIR
 from app.db.session import get_session
@@ -197,21 +196,45 @@ RECIPE_TAGS = (
 recipe_service = RecipeService(UPLOADS_DIR, RECIPE_TAGS)
 
 
+async def fetch_filtered_recipes(
+    session: AsyncSession,
+    selected_tags: list[str],
+    search_query: str,
+):
+    """Возвращает список рецептов с учётом тегов и поискового запроса."""
+    query = recipe_service.apply_tag_filter(
+        recipe_service.base_query().order_by(Recipe.created_at.desc()),
+        selected_tags,
+    )
+    if search_query:
+        # Фильтруем по названию, описанию и ингредиентам через подзапрос.
+        pattern = f"%{search_query.lower()}%"
+        ingredient_ids_subq = select(RecipeIngredient.recipe_id).where(
+            func.lower(RecipeIngredient.name).like(pattern)
+        )
+        query = query.where(
+            or_(
+                func.lower(Recipe.title).like(pattern),
+                func.lower(Recipe.description).like(pattern),
+                Recipe.id.in_(ingredient_ids_subq),
+            )
+        )
+    result = await session.execute(query)
+    return result.scalars().all()
+
+
 @router.get("/", response_class=HTMLResponse, name="recipes_list")
 async def recipes_list(
     request: Request,
+    q: str = Query("", max_length=120),
     tags: list[str] = Query([]),
     session: AsyncSession = Depends(get_session),
     current_user: User | None = Depends(get_current_user),
 ):
     """Список рецептов с фильтрацией по тегам."""
     selected_tags = recipe_service.normalize_tags(tags)
-    query = recipe_service.apply_tag_filter(
-        recipe_service.base_query().order_by(Recipe.created_at.desc()),
-        selected_tags,
-    )
-    result = await session.execute(query)
-    recipes = result.scalars().all()
+    search_query = (q or "").strip()
+    recipes = await fetch_filtered_recipes(session, selected_tags, search_query)
     return templates.TemplateResponse(
         "recipes_list.html",
         {
@@ -221,8 +244,33 @@ async def recipes_list(
             "tag_labels": recipe_service.tag_labels,
             "available_tags": recipe_service.available_tags,
             "selected_tags": selected_tags,
+            "search_query": search_query,
         },
     )
+
+
+@router.get("/search", response_class=JSONResponse, name="recipes_search")
+async def recipes_search(
+    request: Request,
+    q: str = Query("", max_length=120),
+    tags: list[str] = Query([]),
+    session: AsyncSession = Depends(get_session),
+    current_user: User | None = Depends(get_current_user),
+):
+    """AJAX-поиск рецептов для мгновенного обновления списка."""
+    selected_tags = recipe_service.normalize_tags(tags)
+    search_query = (q or "").strip()
+    recipes = await fetch_filtered_recipes(session, selected_tags, search_query)
+    template = templates.get_template("partials/recipes_grid.html")
+    html = template.render(
+        {
+            "request": request,
+            "current_user": current_user,
+            "recipes": recipes,
+            "tag_labels": recipe_service.tag_labels,
+        }
+    )
+    return {"html": html, "count": len(recipes)}
 
 
 @router.get("/new", response_class=HTMLResponse, name="recipes_new")
