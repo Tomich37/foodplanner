@@ -118,31 +118,8 @@
     .filter-btn--active { border-color:#111827; color:#111827; }
     @media (max-width: 640px) { .admin-users__header { flex-direction:column; } }
 </style>
+{% endblock %}
 
-<script>
-    const filterButtons = document.querySelectorAll(".filter-btn");
-    const cards = Array.from(document.querySelectorAll(".user-card"));
-    const searchInput = document.getElementById("user-search");
-
-    function applyFilters() {
-        const active = document.querySelector(".filter-btn--active")?.dataset.filter || "all";
-        const query = (searchInput?.value || "").toLowerCase().trim();
-        cards.forEach((card) => {
-            const role = card.dataset.role;
-            const text = card.dataset.search || "";
-            const roleMatch = active === "all" || role === active;
-            const textMatch = !query || text.includes(query);
-            card.style.display = roleMatch && textMatch ? "" : "none";
-        });
-    }
-
-    filterButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-            filterButtons.forEach((b) => b.classList.remove("filter-btn--active"));
-            btn.classList.add("filter-btn--active");
-            applyFilters();
-        });
-    });
-    searchInput?.addEventListener("input", applyFilters);
-</script>
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/admin_users.js') }}" defer></script>
 {% endblock %}
