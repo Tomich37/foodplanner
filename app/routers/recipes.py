@@ -196,6 +196,13 @@ RECIPE_TAGS = (
 recipe_service = RecipeService(UPLOADS_DIR, RECIPE_TAGS)
 
 
+def resolve_back_url(request: Request, fallback: str) -> str:
+    """Безопасно определяет URL для кнопки «Назад»."""
+    referrer = request.headers.get("referer") or ""
+    base_url = str(request.base_url)
+    return referrer if referrer.startswith(base_url) else fallback
+
+
 async def fetch_filtered_recipes(
     session: AsyncSession,
     selected_tags: list[str],
@@ -276,12 +283,16 @@ async def recipes_search(
 @router.get("/new", response_class=HTMLResponse, name="recipes_new")
 async def new_recipe(request: Request, current_user: User = Depends(get_current_user_required)):
     """Форма добавления нового рецепта."""
+    referrer = request.headers.get("referer") or ""
+    base_url = str(request.base_url)
+    back_url = referrer if referrer.startswith(base_url) else str(request.url_for("recipes_list"))
     return templates.TemplateResponse(
         "recipe_new.html",
         {
             "request": request,
             "current_user": current_user,
             "available_tags": recipe_service.available_tags,
+            "previous_url": back_url,
         },
     )
 
@@ -335,6 +346,8 @@ async def edit_recipe(
     """Редактор рецепта (доступен только автору)."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
     recipe_service.ensure_can_manage(recipe, current_user)
+    fallback = str(request.url_for("recipe_detail", recipe_id=recipe.id))
+    back_url = resolve_back_url(request, fallback)
 
     return templates.TemplateResponse(
         "recipe_edit.html",
@@ -343,6 +356,7 @@ async def edit_recipe(
             "current_user": current_user,
             "recipe": recipe,
             "available_tags": recipe_service.available_tags,
+            "previous_url": back_url,
         },
     )
 
@@ -457,6 +471,7 @@ async def recipe_detail(
     """Детальная страница рецепта."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
     minimal_view = bool(request.session.get("minimal_recipe_view"))
+    back_url = resolve_back_url(request, fallback=str(request.url_for("recipes_list")))
     return templates.TemplateResponse(
         "recipe_detail.html",
         {
@@ -465,5 +480,6 @@ async def recipe_detail(
             "recipe": recipe,
             "tag_labels": recipe_service.tag_labels,
             "minimal_view": minimal_view,
+            "previous_url": back_url,
         },
     )

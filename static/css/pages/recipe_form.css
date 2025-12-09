@@ -17,6 +17,12 @@
     color: var(--text-muted);
 }
 
+.recipe-form__nav {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 16px;
+}
+
 .recipe-form__form {
     display: flex;
     flex-direction: column;
@@ -70,4 +76,3 @@
     margin-bottom: 10px;
     object-fit: cover;
 }
-
