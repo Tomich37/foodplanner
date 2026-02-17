@@ -200,6 +200,13 @@ PRIMARY_TAG_SET = set(PRIMARY_TAG_VALUES)
 recipe_service = RecipeService(UPLOADS_DIR, RECIPE_TAGS)
 
 
+def split_available_tags() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+    available_tags = recipe_service.available_tags
+    primary_tags = [tag for tag in available_tags if tag["value"] in PRIMARY_TAG_SET]
+    extra_tags = [tag for tag in available_tags if tag["value"] not in PRIMARY_TAG_SET]
+    return available_tags, primary_tags, extra_tags
+
+
 def resolve_back_url(request: Request, fallback: str) -> str:
     """Безопасно определяет URL для кнопки «Назад»."""
     referrer = request.headers.get("referer") or ""
@@ -246,9 +253,7 @@ async def recipes_list(
     selected_tags = recipe_service.normalize_tags(tags)
     search_query = (q or "").strip()
     recipes = await fetch_filtered_recipes(session, selected_tags, search_query)
-    available_tags = recipe_service.available_tags
-    primary_tags = [tag for tag in available_tags if tag["value"] in PRIMARY_TAG_SET]
-    extra_tags = [tag for tag in available_tags if tag["value"] not in PRIMARY_TAG_SET]
+    available_tags, primary_tags, extra_tags = split_available_tags()
     extra_tag_values = [tag["value"] for tag in extra_tags]
     selected_extra_tags = [tag for tag in selected_tags if tag in extra_tag_values]
     return templates.TemplateResponse(
@@ -299,12 +304,16 @@ async def new_recipe(request: Request, current_user: User = Depends(get_current_
     referrer = request.headers.get("referer") or ""
     base_url = str(request.base_url)
     back_url = referrer if referrer.startswith(base_url) else str(request.url_for("recipes_list"))
+    available_tags, primary_tags, extra_tags = split_available_tags()
     return templates.TemplateResponse(
         "recipe_new.html",
         {
             "request": request,
             "current_user": current_user,
-            "available_tags": recipe_service.available_tags,
+            "available_tags": available_tags,
+            "primary_tags": primary_tags,
+            "extra_tags": extra_tags,
+            "selected_tags": [],
             "previous_url": back_url,
         },
     )
@@ -361,6 +370,7 @@ async def edit_recipe(
     recipe_service.ensure_can_manage(recipe, current_user)
     fallback = str(request.url_for("recipe_detail", recipe_id=recipe.id))
     back_url = resolve_back_url(request, fallback)
+    available_tags, primary_tags, extra_tags = split_available_tags()
 
     return templates.TemplateResponse(
         "recipe_edit.html",
@@ -368,7 +378,10 @@ async def edit_recipe(
             "request": request,
             "current_user": current_user,
             "recipe": recipe,
-            "available_tags": recipe_service.available_tags,
+            "available_tags": available_tags,
+            "primary_tags": primary_tags,
+            "extra_tags": extra_tags,
+            "selected_tags": recipe.tags or [],
             "previous_url": back_url,
         },
     )

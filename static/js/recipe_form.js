@@ -6,6 +6,14 @@
     const ingredientsWrapper = document.getElementById("ingredients-wrapper");
     const addIngredientBtn = document.getElementById("add-ingredient-btn");
     const tagButtons = document.querySelectorAll("[data-tag-toggle]");
+    const tagDropdown = document.querySelector("[data-tag-dropdown]");
+    const tagDropdownToggle = tagDropdown?.querySelector("[data-tag-dropdown-toggle]");
+    const tagDropdownPanel = tagDropdown?.querySelector("[data-tag-dropdown-panel]");
+    const tagDropdownClose = tagDropdown?.querySelector("[data-tag-dropdown-close]");
+    const tagDropdownCount = tagDropdown?.querySelector("[data-tag-dropdown-count]");
+    const tagDropdownCheckboxes = tagDropdown
+        ? Array.from(tagDropdown.querySelectorAll("[data-tag-dropdown-checkbox]"))
+        : [];
 
     if (!stepsWrapper || !ingredientsWrapper) {
         return;
@@ -159,5 +167,66 @@
             syncState();
         });
     });
-})();
 
+    const updateTagDropdownCount = () => {
+        if (!tagDropdownCount) {
+            return;
+        }
+        const checked = tagDropdownCheckboxes.filter((checkbox) => checkbox.checked).length;
+        tagDropdownCount.textContent = checked ? `(${checked})` : "";
+    };
+
+    const closeTagDropdown = () => {
+        if (!tagDropdown) {
+            return;
+        }
+        tagDropdown.classList.remove("is-open");
+        tagDropdownToggle?.setAttribute("aria-expanded", "false");
+    };
+
+    const openTagDropdown = () => {
+        if (!tagDropdown) {
+            return;
+        }
+        tagDropdown.classList.add("is-open");
+        tagDropdownToggle?.setAttribute("aria-expanded", "true");
+    };
+
+    tagDropdownToggle?.addEventListener("click", (event) => {
+        event.preventDefault();
+        const isOpen = tagDropdown.classList.contains("is-open");
+        if (isOpen) {
+            closeTagDropdown();
+        } else {
+            openTagDropdown();
+        }
+    });
+
+    tagDropdownClose?.addEventListener("click", () => {
+        closeTagDropdown();
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!tagDropdown) {
+            return;
+        }
+        if (tagDropdown.contains(event.target)) {
+            return;
+        }
+        closeTagDropdown();
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            closeTagDropdown();
+        }
+    });
+
+    tagDropdownCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+            updateTagDropdownCount();
+        });
+    });
+
+    updateTagDropdownCount();
+})();

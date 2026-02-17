@@ -26,22 +26,83 @@
                     <label for="cover_image">Обложка рецепта</label>
                     <input type="file" id="cover_image" name="cover_image" accept="image/*" />
                 </div>
-                {% if available_tags %}
-                <div class="form-group">
+                {% set selected_tags = selected_tags or [] %}
+                {% if primary_tags or extra_tags %}
+                <div class="form-group recipe-form__tags-group">
                     <label>Теги</label>
-                    <div class="tag-selector">
-                        {% for tag in available_tags %}
-                        {% set input_id = "tag-new-" ~ tag.value %}
-                        <input type="checkbox" id="{{ input_id }}" name="tags" value="{{ tag.value }}" hidden />
-                        <button
-                            type="button"
-                            class="btn btn--ghost tag-button"
-                            data-tag-toggle
-                            data-target="{{ input_id }}"
-                        >
-                            {{ tag.label }}
-                        </button>
+                    <div class="recipe-form__tags-inline">
+                        {% if primary_tags %}
+                        <div class="recipe-form__tags-buttons">
+                            {% for tag in primary_tags %}
+                            {% set input_id = "tag-new-" ~ tag.value %}
+                            <input
+                                type="checkbox"
+                                id="{{ input_id }}"
+                                name="tags"
+                                value="{{ tag.value }}"
+                                {% if tag.value in selected_tags %}checked{% endif %}
+                                hidden
+                            />
+                            <button
+                                type="button"
+                                class="btn btn--ghost tag-button"
+                                data-tag-toggle
+                                data-target="{{ input_id }}"
+                            >
+                                {{ tag.label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% if extra_tags %}
+                        {% set extra_ns = namespace(count=0) %}
+                        {% for tag in extra_tags %}
+                            {% if tag.value in selected_tags %}
+                                {% set extra_ns.count = extra_ns.count + 1 %}
+                            {% endif %}
                         {% endfor %}
+                        <div class="recipe-form__tags-extra" data-tag-dropdown>
+                            <button
+                                type="button"
+                                class="btn btn--ghost btn--small recipe-form__tags-extra-toggle"
+                                data-tag-dropdown-toggle
+                                aria-expanded="false"
+                                aria-haspopup="true"
+                            >
+                                <span>Дополнительные теги</span>
+                                <span class="recipe-form__tags-extra-count" data-tag-dropdown-count>
+                                    {% if extra_ns.count %}({{ extra_ns.count }}){% endif %}
+                                </span>
+                                <span class="recipe-form__tags-extra-arrow" aria-hidden="true">&#9662;</span>
+                            </button>
+                            <div class="recipe-form__tags-extra-panel" data-tag-dropdown-panel>
+                                <p class="recipe-form__tags-hint">
+                                    Отметьте дополнительные теги. Изменения сохранятся автоматически.
+                                </p>
+                                <div class="recipe-form__tags-extra-list">
+                                    {% for tag in extra_tags %}
+                                    <label class="recipe-form__tags-option">
+                                        <input
+                                            type="checkbox"
+                                            name="tags"
+                                            value="{{ tag.value }}"
+                                            {% if tag.value in selected_tags %}checked{% endif %}
+                                            data-tag-dropdown-checkbox
+                                        />
+                                        <span>{{ tag.label }}</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn btn--ghost btn--small recipe-form__tags-extra-close"
+                                    data-tag-dropdown-close
+                                >
+                                    Готово
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}

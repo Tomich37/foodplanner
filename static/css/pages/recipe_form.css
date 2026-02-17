@@ -76,3 +76,131 @@
     margin-bottom: 10px;
     object-fit: cover;
 }
+
+.recipe-form__tags-group label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.recipe-form__tags-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.recipe-form__tags-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.recipe-form__tags-buttons .tag-button {
+    margin: 0;
+}
+
+.recipe-form__tags-primary {
+    flex: 1 1 280px;
+    min-width: 220px;
+}
+
+.recipe-form__tags-title {
+    margin: 0 0 6px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.recipe-form__tags-extra {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-self: flex-start;
+}
+
+.recipe-form__tags-extra-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 10px;
+}
+
+.recipe-form__tags-extra-count {
+    font-weight: 600;
+}
+
+.recipe-form__tags-extra-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+    padding: 14px;
+    display: none;
+    z-index: 5;
+}
+
+.recipe-form__tags-extra.is-open .recipe-form__tags-extra-panel {
+    display: block;
+}
+
+.recipe-form__tags-extra-arrow {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+}
+
+.recipe-form__tags-extra.is-open .recipe-form__tags-extra-arrow {
+    transform: rotate(180deg);
+}
+
+.recipe-form__tags-hint {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.recipe-form__tags-extra-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.recipe-form__tags-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.recipe-form__tags-option input {
+    accent-color: var(--accent);
+}
+
+.recipe-form__tags-extra-close {
+    margin-top: 10px;
+    align-self: flex-end;
+}
+
+@media (max-width: 640px) {
+    .recipe-form__tags-extra-panel {
+        position: static;
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .recipe-form__tags-inline {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .recipe-form__tags-extra {
+        width: 100%;
+    }
+}
