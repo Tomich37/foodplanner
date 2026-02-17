@@ -8,6 +8,19 @@
     const searchForm = document.querySelector("[data-recipes-search]");
     const resultsContainer = document.querySelector("[data-recipes-results]");
     const searchUrl = searchForm?.dataset.searchUrl || "";
+    const extraDropdown = document.querySelector("[data-extra-dropdown]");
+    const extraDropdownToggle = extraDropdown?.querySelector("[data-extra-dropdown-toggle]");
+    const extraDropdownPanel = extraDropdown?.querySelector("[data-extra-dropdown-panel]");
+    const extraApplyBtn = extraDropdown?.querySelector("[data-extra-apply]");
+    const extraClearBtn = extraDropdown?.querySelector("[data-extra-clear]");
+    const extraCountTarget = extraDropdown?.querySelector("[data-extra-selected-count]");
+    const extraTagCheckboxes = extraDropdown
+        ? Array.from(extraDropdown.querySelectorAll("[data-extra-tag-checkbox]"))
+        : [];
+    const extraTagValues = (extraDropdown?.dataset.extraTagValues || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
     let searchController;
 
     if (!searchForm || !resultsContainer) {
@@ -102,6 +115,95 @@
         window.location.href = buildTarget(params);
     });
 
+    const closeExtraDropdown = () => {
+        if (!extraDropdown) {
+            return;
+        }
+        extraDropdown.classList.remove("is-open");
+        extraDropdownToggle?.setAttribute("aria-expanded", "false");
+    };
+
+    const openExtraDropdown = () => {
+        if (!extraDropdown) {
+            return;
+        }
+        extraDropdown.classList.add("is-open");
+        extraDropdownToggle?.setAttribute("aria-expanded", "true");
+    };
+
+    extraDropdownToggle?.addEventListener("click", (event) => {
+        event.preventDefault();
+        const isOpen = extraDropdown?.classList.contains("is-open");
+        if (isOpen) {
+            closeExtraDropdown();
+        } else {
+            openExtraDropdown();
+        }
+    });
+
+    document.addEventListener("click", (event) => {
+        if (!extraDropdown) {
+            return;
+        }
+        if (extraDropdown.contains(event.target)) {
+            return;
+        }
+        closeExtraDropdown();
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (!extraDropdown) {
+            return;
+        }
+        if (event.key === "Escape") {
+            closeExtraDropdown();
+        }
+    });
+
+    const updateExtraCount = () => {
+        if (!extraCountTarget) {
+            return;
+        }
+        const selectedCount = extraTagCheckboxes.filter((checkbox) => checkbox.checked).length;
+        extraCountTarget.textContent = selectedCount ? `(${selectedCount})` : "";
+    };
+
+    const applyExtraTags = () => {
+        const tagsSet = getCurrentTags();
+        if (extraTagValues.length) {
+            extraTagValues.forEach((value) => tagsSet.delete(value));
+        }
+        extraTagCheckboxes.forEach((checkbox) => {
+            const value = checkbox.value;
+            if (checkbox.checked && value) {
+                tagsSet.add(value);
+            }
+        });
+        applySelection(tagsSet);
+    };
+
+    extraTagCheckboxes.forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+            updateExtraCount();
+        });
+    });
+
+    extraApplyBtn?.addEventListener("click", () => {
+        closeExtraDropdown();
+        applyExtraTags();
+    });
+
+    extraClearBtn?.addEventListener("click", () => {
+        extraTagCheckboxes.forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+        updateExtraCount();
+        closeExtraDropdown();
+        applyExtraTags();
+    });
+
+    updateExtraCount();
+
     clearSearchBtn?.addEventListener("click", () => {
         const params = buildSearchParams();
         updateHistory(params);
@@ -124,4 +226,3 @@
         debouncedSearch();
     });
 })();
-

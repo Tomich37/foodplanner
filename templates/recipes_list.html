@@ -42,10 +42,11 @@
                     {% endif %}
                 </div>
             </form>
-            {% if available_tags %}
-            <div class="recipes-filters__tags">
-                <div class="tag-selector">
-                    {% for tag in available_tags %}
+            {% if primary_tags or extra_tags or selected_tags %}
+            <div class="recipes-filters__controls">
+                <div class="recipes-filters__tags">
+                    {% if primary_tags %}
+                    {% for tag in primary_tags %}
                     <button
                         type="button"
                         class="btn btn--ghost tag-button {% if selected_tags and tag.value in selected_tags %}tag-button--active{% endif %}"
@@ -54,10 +55,60 @@
                         {{ tag.label }}
                     </button>
                     {% endfor %}
+                    {% endif %}
+                    {% if extra_tags %}
+                    <div
+                        class="recipes-filters__extra"
+                        data-extra-dropdown
+                        data-extra-tag-values="{{ extra_tag_values | join(',') }}"
+                    >
+                        <button
+                            type="button"
+                            class="btn btn--ghost btn--small recipes-filters__extra-toggle"
+                            data-extra-dropdown-toggle
+                            aria-expanded="false"
+                            aria-haspopup="true"
+                        >
+                            <span>Дополнительные теги</span>
+                            <span class="recipes-filters__extra-count" data-extra-selected-count>
+                                {% if selected_extra_tags %}({{ selected_extra_tags | length }}){% endif %}
+                            </span>
+                            <span class="recipes-filters__extra-arrow" aria-hidden="true">&#9662;</span>
+                        </button>
+                        <div class="recipes-filters__extra-panel" data-extra-dropdown-panel>
+                            <p class="recipes-filters__hint">
+                                Отметьте подходящие теги и нажмите «Применить»
+                            </p>
+                            <div class="recipes-filters__extra-list">
+                                {% for tag in extra_tags %}
+                                <label class="recipes-filters__extra-option">
+                                    <input
+                                        type="checkbox"
+                                        value="{{ tag.value }}"
+                                        {% if tag.value in selected_tags %}checked{% endif %}
+                                        data-extra-tag-checkbox
+                                    />
+                                    <span>{{ tag.label }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div class="recipes-filters__extra-actions">
+                                <button type="button" class="btn btn--primary btn--small" data-extra-apply>
+                                    Применить
+                                </button>
+                                <button type="button" class="btn btn--ghost btn--small" data-extra-clear>
+                                    Сбросить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if selected_tags %}
+                    <button type="button" class="btn btn--ghost recipes-filters__reset" data-reset-tags>
+                        Сбросить фильтры
+                    </button>
+                    {% endif %}
                 </div>
-                {% if selected_tags %}
-                <button type="button" class="btn btn--ghost" data-reset-tags>Сбросить теги</button>
-                {% endif %}
             </div>
             {% endif %}
         </div>

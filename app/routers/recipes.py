@@ -185,14 +185,18 @@ class RecipeService:
 
 
 RECIPE_TAGS = (
-    RecipeTag(value="breakfast", label="Завтрак"),
-    RecipeTag(value="lunch", label="Обед"),
-    RecipeTag(value="dinner", label="Ужин"),
-    RecipeTag(value="dessert", label="Десерт"),
-    RecipeTag(value="snack", label="Перекус"),
-    RecipeTag(value="pp", label="ПП"),
-    RecipeTag(value="fast", label="Быстрый"),
+    RecipeTag(value="breakfast", label="Завтраки"),
+    RecipeTag(value="lunch", label="Обеды"),
+    RecipeTag(value="dinner", label="Ужины"),
+    RecipeTag(value="dessert", label="Десерты"),
+    RecipeTag(value="snack", label="Перекусы"),
+    RecipeTag(value="pp", label="Полезное питание"),
+    RecipeTag(value="fast", label="Быстрые блюда"),
+    RecipeTag(value="soup", label="Супы"),
 )
+PRIMARY_TAG_VALUES = ("breakfast", "lunch", "dinner")
+PRIMARY_TAG_SET = set(PRIMARY_TAG_VALUES)
+
 recipe_service = RecipeService(UPLOADS_DIR, RECIPE_TAGS)
 
 
@@ -242,6 +246,11 @@ async def recipes_list(
     selected_tags = recipe_service.normalize_tags(tags)
     search_query = (q or "").strip()
     recipes = await fetch_filtered_recipes(session, selected_tags, search_query)
+    available_tags = recipe_service.available_tags
+    primary_tags = [tag for tag in available_tags if tag["value"] in PRIMARY_TAG_SET]
+    extra_tags = [tag for tag in available_tags if tag["value"] not in PRIMARY_TAG_SET]
+    extra_tag_values = [tag["value"] for tag in extra_tags]
+    selected_extra_tags = [tag for tag in selected_tags if tag in extra_tag_values]
     return templates.TemplateResponse(
         "recipes_list.html",
         {
@@ -249,7 +258,11 @@ async def recipes_list(
             "current_user": current_user,
             "recipes": recipes,
             "tag_labels": recipe_service.tag_labels,
-            "available_tags": recipe_service.available_tags,
+            "available_tags": available_tags,
+            "primary_tags": primary_tags,
+            "extra_tags": extra_tags,
+            "extra_tag_values": extra_tag_values,
+            "selected_extra_tags": selected_extra_tags,
             "selected_tags": selected_tags,
             "search_query": search_query,
         },
