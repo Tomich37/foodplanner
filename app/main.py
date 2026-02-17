@@ -9,6 +9,14 @@ from app.db.session import engine
 from app.routers import admin, auth, pages
 from app.routers import recipes, profile
 
+DEFAULT_EXTRA_TAGS = (
+    ("snack", "Перекусы"),
+    ("pp", "Полезное питание"),
+    ("fast", "Быстрые блюда"),
+    ("dessert", "Десерты"),
+    ("soup", "Супы"),
+)
+
 
 def create_app() -> FastAPI:
     application = FastAPI()
@@ -46,6 +54,17 @@ def create_app() -> FastAPI:
                     "ADD COLUMN IF NOT EXISTS unit VARCHAR(16) NOT NULL DEFAULT 'g'"
                 )
             )
+            tag_count = await conn.scalar(text("SELECT COUNT(*) FROM recipe_extra_tags"))
+            if not tag_count:
+                for value, label in DEFAULT_EXTRA_TAGS:
+                    await conn.execute(
+                        text(
+                            "INSERT INTO recipe_extra_tags (value, label) "
+                            "VALUES (:value, :label) "
+                            "ON CONFLICT DO NOTHING"
+                        ),
+                        {"value": value, "label": label},
+                    )
 
     return application
 

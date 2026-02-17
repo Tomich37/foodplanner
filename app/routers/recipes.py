@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import STATIC_DIR, TEMPLATES_DIR
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
-from app.models import Recipe, RecipeIngredient, RecipeStep, User
+from app.models import Recipe, RecipeIngredient, RecipeStep, User, RecipeExtraTag
 from app.services.cover_resolver import recipe_cover_resolver
 from app.services.unit_converter import UnitConverter
 
@@ -58,11 +58,14 @@ class RecipeService:
             selectinload(Recipe.author),
         )
 
-    def normalize_tags(self, values: Iterable[str]) -> list[str]:
+    def normalize_tags(self, values: Iterable[str], extra_allowed: Iterable[str] | None = None) -> list[str]:
         seen: set[str] = set()
         normalized: list[str] = []
+        allowed = set(self.tag_value_set)
+        if extra_allowed:
+            allowed.update(extra_allowed)
         for value in values:
-            if value not in self.tag_value_set or value in seen:
+            if value not in allowed or value in seen:
                 continue
             seen.add(value)
             normalized.append(value)
@@ -185,15 +188,35 @@ class RecipeService:
 
 
 RECIPE_TAGS = (
-    RecipeTag(value="breakfast", label="Завтрак"),
-    RecipeTag(value="lunch", label="Обед"),
-    RecipeTag(value="dinner", label="Ужин"),
-    RecipeTag(value="dessert", label="Десерт"),
-    RecipeTag(value="snack", label="Перекус"),
-    RecipeTag(value="pp", label="ПП"),
-    RecipeTag(value="fast", label="Быстрый"),
+    RecipeTag(value="breakfast", label="Завтраки"),
+    RecipeTag(value="lunch", label="Обеды"),
+    RecipeTag(value="dinner", label="Ужины"),
 )
+PRIMARY_TAG_VALUES = ("breakfast", "lunch", "dinner")
+PRIMARY_TAG_SET = set(PRIMARY_TAG_VALUES)
+
 recipe_service = RecipeService(UPLOADS_DIR, RECIPE_TAGS)
+
+
+async def fetch_extra_tag_models(session: AsyncSession, *, order_by_label: bool = True) -> list[RecipeExtraTag]:
+    stmt = select(RecipeExtraTag)
+    if order_by_label:
+        stmt = stmt.order_by(RecipeExtraTag.label.asc())
+    else:
+        stmt = stmt.order_by(RecipeExtraTag.created_at.desc())
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+
+def serialize_extra_tags(extra_models: list[RecipeExtraTag]) -> list[dict[str, str]]:
+    return [{"value": tag.value, "label": tag.label} for tag in extra_models]
+
+
+def build_tag_labels(extra_models: list[RecipeExtraTag]) -> dict[str, str]:
+    labels = dict(recipe_service.tag_labels)
+    for tag in extra_models:
+        labels[tag.value] = tag.label
+    return labels
 
 
 def resolve_back_url(request: Request, fallback: str) -> str:
@@ -239,17 +262,28 @@ async def recipes_list(
     current_user: User | None = Depends(get_current_user),
 ):
     """Список рецептов с фильтрацией по тегам."""
-    selected_tags = recipe_service.normalize_tags(tags)
+    extra_models = await fetch_extra_tag_models(session)
+    extra_tags = serialize_extra_tags(extra_models)
+    extra_tag_values = [tag["value"] for tag in extra_tags]
+    selected_tags = recipe_service.normalize_tags(tags, extra_tag_values)
     search_query = (q or "").strip()
     recipes = await fetch_filtered_recipes(session, selected_tags, search_query)
+    selected_extra_tags = [tag for tag in selected_tags if tag in extra_tag_values]
+    primary_tags = [
+        tag for tag in recipe_service.available_tags if tag["value"] in PRIMARY_TAG_SET
+    ]
+    tag_labels = build_tag_labels(extra_models)
     return templates.TemplateResponse(
         "recipes_list.html",
         {
             "request": request,
             "current_user": current_user,
             "recipes": recipes,
-            "tag_labels": recipe_service.tag_labels,
-            "available_tags": recipe_service.available_tags,
+            "tag_labels": tag_labels,
+            "primary_tags": primary_tags,
+            "extra_tags": extra_tags,
+            "extra_tag_values": extra_tag_values,
+            "selected_extra_tags": selected_extra_tags,
             "selected_tags": selected_tags,
             "search_query": search_query,
         },
@@ -265,33 +299,48 @@ async def recipes_search(
     current_user: User | None = Depends(get_current_user),
 ):
     """AJAX-поиск рецептов для мгновенного обновления списка."""
-    selected_tags = recipe_service.normalize_tags(tags)
+    extra_models = await fetch_extra_tag_models(session)
+    extra_tag_values = [tag.value for tag in extra_models]
+    selected_tags = recipe_service.normalize_tags(tags, extra_tag_values)
     search_query = (q or "").strip()
     recipes = await fetch_filtered_recipes(session, selected_tags, search_query)
+    tag_labels = build_tag_labels(extra_models)
     template = templates.get_template("partials/recipes_grid.html")
     html = template.render(
         {
             "request": request,
             "current_user": current_user,
             "recipes": recipes,
-            "tag_labels": recipe_service.tag_labels,
+            "tag_labels": tag_labels,
         }
     )
     return {"html": html, "count": len(recipes)}
 
 
 @router.get("/new", response_class=HTMLResponse, name="recipes_new")
-async def new_recipe(request: Request, current_user: User = Depends(get_current_user_required)):
+async def new_recipe(
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
     """Форма добавления нового рецепта."""
     referrer = request.headers.get("referer") or ""
     base_url = str(request.base_url)
     back_url = referrer if referrer.startswith(base_url) else str(request.url_for("recipes_list"))
+    extra_models = await fetch_extra_tag_models(session)
+    extra_tags = serialize_extra_tags(extra_models)
+    primary_tags = [
+        tag for tag in recipe_service.available_tags if tag["value"] in PRIMARY_TAG_SET
+    ]
     return templates.TemplateResponse(
         "recipe_new.html",
         {
             "request": request,
             "current_user": current_user,
-            "available_tags": recipe_service.available_tags,
+            "primary_tags": primary_tags,
+            "extra_tags": extra_tags,
+            "selected_tags": [],
+            "selected_extra_tags": [],
             "previous_url": back_url,
         },
     )
@@ -315,7 +364,9 @@ async def create_recipe(
     """Создает рецепт и сохраняет шаги/ингредиенты."""
     step_texts = recipe_service.clean_steps(steps)
     ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts, ingredient_units)
-    selected_tags = recipe_service.normalize_tags(tags)
+    extra_models = await fetch_extra_tag_models(session)
+    extra_tag_values = [tag.value for tag in extra_models]
+    selected_tags = recipe_service.normalize_tags(tags, extra_tag_values)
     recipe_service.validate_common_fields(title, step_texts, ingredients)
 
     recipe = Recipe(
@@ -348,14 +399,24 @@ async def edit_recipe(
     recipe_service.ensure_can_manage(recipe, current_user)
     fallback = str(request.url_for("recipe_detail", recipe_id=recipe.id))
     back_url = resolve_back_url(request, fallback)
-
+    extra_models = await fetch_extra_tag_models(session)
+    extra_tags = serialize_extra_tags(extra_models)
+    extra_tag_values = [tag["value"] for tag in extra_tags]
+    primary_tags = [
+        tag for tag in recipe_service.available_tags if tag["value"] in PRIMARY_TAG_SET
+    ]
+    selected_tags = recipe.tags or []
+    selected_extra_tags = [tag for tag in selected_tags if tag in extra_tag_values]
     return templates.TemplateResponse(
         "recipe_edit.html",
         {
             "request": request,
             "current_user": current_user,
             "recipe": recipe,
-            "available_tags": recipe_service.available_tags,
+            "primary_tags": primary_tags,
+            "extra_tags": extra_tags,
+            "selected_tags": selected_tags,
+            "selected_extra_tags": selected_extra_tags,
             "previous_url": back_url,
         },
     )
@@ -385,7 +446,9 @@ async def update_recipe(
 
     cleaned_steps = recipe_service.clean_steps(steps)
     ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts, ingredient_units)
-    selected_tags = recipe_service.normalize_tags(tags)
+    extra_models = await fetch_extra_tag_models(session)
+    extra_tag_values = [tag.value for tag in extra_models]
+    selected_tags = recipe_service.normalize_tags(tags, extra_tag_values)
     recipe_service.validate_common_fields(title, cleaned_steps, ingredients)
 
     recipe.title = title.strip()
@@ -472,13 +535,15 @@ async def recipe_detail(
     recipe = await recipe_service.load_recipe(session, recipe_id)
     minimal_view = bool(request.session.get("minimal_recipe_view"))
     back_url = resolve_back_url(request, fallback=str(request.url_for("recipes_list")))
+    extra_models = await fetch_extra_tag_models(session)
+    tag_labels = build_tag_labels(extra_models)
     return templates.TemplateResponse(
         "recipe_detail.html",
         {
             "request": request,
             "current_user": current_user,
             "recipe": recipe,
-            "tag_labels": recipe_service.tag_labels,
+            "tag_labels": tag_labels,
             "minimal_view": minimal_view,
             "previous_url": back_url,
         },

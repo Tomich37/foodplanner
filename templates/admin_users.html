@@ -8,6 +8,12 @@
 
 <section class="admin-users">
     <div class="container">
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_users') }}" class="admin-nav__link admin-nav__link--active"
+                >Пользователи</a
+            >
+            <a href="{{ url_for('admin_tags') }}" class="admin-nav__link">Теги</a>
+        </div>
         <div class="admin-users__header">
             <div>
                 <p class="eyebrow">Администрирование</p>
