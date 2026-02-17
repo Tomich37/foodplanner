@@ -92,5 +92,5 @@
 {% endblock %}
 
 {% block extra_styles %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/user_profile.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/user_profile.css') }}?v={{ static_version }}" />
 {% endblock %}

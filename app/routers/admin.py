@@ -8,13 +8,14 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import TEMPLATES_DIR
+from app.core.config import TEMPLATES_DIR, settings
 from app.db.session import get_session
 from app.dependencies.users import get_current_user_required
 from app.models import RecipeExtraTag, User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["static_version"] = settings.static_version
 TAG_VALUE_RE = re.compile(r"[^a-z0-9]+")
 PRIMARY_TAG_VALUES = {"breakfast", "lunch", "dinner"}
 

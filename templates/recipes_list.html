@@ -120,9 +120,9 @@
 {% endblock %}
 
 {% block extra_styles %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/recipes.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/recipes.css') }}?v={{ static_version }}" />
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', path='/js/recipes.js') }}" defer></script>
+<script src="{{ url_for('static', path='/js/recipes.js') }}?v={{ static_version }}" defer></script>
 {% endblock %}

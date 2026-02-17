@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import TEMPLATES_DIR
+from app.core.config import TEMPLATES_DIR, settings
 from app.core.security import hash_password, verify_password
 from app.db.session import get_session
 from app.dependencies.users import get_current_user_required
@@ -13,6 +13,7 @@ from app.models.user import User
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["static_version"] = settings.static_version
 
 
 class ProfileService:

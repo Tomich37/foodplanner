@@ -97,9 +97,9 @@
 </section>
 {% endblock %}
 {% block extra_styles %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/recipe_detail.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/recipe_detail.css') }}?v={{ static_version }}" />
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', path='/js/recipe_detail.js') }}" defer></script>
+<script src="{{ url_for('static', path='/js/recipe_detail.js') }}?v={{ static_version }}" defer></script>
 {% endblock %}
