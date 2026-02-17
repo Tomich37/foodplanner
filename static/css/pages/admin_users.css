@@ -116,8 +116,8 @@
 
 .user-card__actions {
     display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.6rem;
 }
 
 .badge--success {
@@ -125,9 +125,66 @@
     color: #065f46;
 }
 
+.badge--danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
 .filter-btn--active {
     border-color: #111827;
     color: #111827;
+}
+
+.form-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.user-card__badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.user-card__actions-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.user-card__password {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.user-card__password label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.user-card__password input {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    min-width: 220px;
+}
+
+.user-card__warning {
+    margin: 0;
+    padding: 0.7rem 0.9rem;
+    border-radius: 10px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 0.9rem;
 }
 
 @media (max-width: 640px) {
@@ -135,4 +192,3 @@
         flex-direction: column;
     }
 }
-
