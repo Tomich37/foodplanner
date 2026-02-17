@@ -13,7 +13,11 @@
             </p>
             <div class="hero__actions">
                 {% if current_user %}
-                <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
+                    {% if current_user.is_banned %}
+                    <button type="button" class="btn btn--primary" data-banned-create>Создать рецепт</button>
+                    {% else %}
+                    <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
+                    {% endif %}
                 {% else %}
                 <a href="{{ url_for('register_form') }}" class="btn btn--primary">Создать аккаунт</a>
                 <a href="{{ url_for('login_form') }}" class="btn btn--ghost">У меня уже есть аккаунт</a>

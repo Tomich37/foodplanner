@@ -37,7 +37,11 @@
 
         <div class="user-profile__actions">
             {% if current_user %}
-            <a href="{{ url_for('recipes_new') }}" class="btn btn--primary btn--small">Добавить рецепт</a>
+                {% if current_user.is_banned %}
+                <button type="button" class="btn btn--primary btn--small" data-banned-create>Добавить рецепт</button>
+                {% else %}
+                <a href="{{ url_for('recipes_new') }}" class="btn btn--primary btn--small">Добавить рецепт</a>
+                {% endif %}
             {% endif %}
             {% if is_self %}
             <a href="{{ url_for('profile') }}" class="btn btn--ghost btn--small">Настройки профиля</a>

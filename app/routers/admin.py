@@ -9,6 +9,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import TEMPLATES_DIR, settings
+from app.core.security import hash_password
 from app.db.session import get_session
 from app.dependencies.users import get_current_user_required
 from app.models import RecipeExtraTag, User
@@ -26,6 +27,34 @@ def _ensure_admin(user: User) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Доступно только администраторам.")
 
 
+async def _get_user_or_404(session: AsyncSession, user_id: int) -> User:
+    user = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден.")
+    return user
+
+
+async def _render_users_page(
+    request: Request,
+    session: AsyncSession,
+    current_user: User,
+    *,
+    form_error: str | None = None,
+) -> HTMLResponse:
+    result = await session.execute(select(User).order_by(User.created_at.desc()))
+    users = result.scalars().all()
+    return templates.TemplateResponse(
+        "admin_users.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "users": users,
+            "form_error": form_error,
+        },
+        status_code=status.HTTP_400_BAD_REQUEST if form_error else status.HTTP_200_OK,
+    )
+
+
 @router.get("/users", response_class=HTMLResponse, name="admin_users")
 async def list_users(
     request: Request,
@@ -34,12 +63,7 @@ async def list_users(
 ):
     """Страница управления администраторами: список пользователей и действия."""
     _ensure_admin(current_user)
-    result = await session.execute(select(User).order_by(User.created_at.desc()))
-    users = result.scalars().all()
-    return templates.TemplateResponse(
-        "admin_users.html",
-        {"request": request, "current_user": current_user, "users": users},
-    )
+    return await _render_users_page(request, session, current_user)
 
 
 @router.post("/users/{user_id}/grant", response_class=HTMLResponse, name="admin_grant")
@@ -50,9 +74,7 @@ async def grant_admin(
 ):
     """Назначает пользователя администратором."""
     _ensure_admin(current_user)
-    user = await session.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+    user = await _get_user_or_404(session, user_id)
     user.is_admin = True
     await session.commit()
     return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
@@ -173,12 +195,56 @@ async def revoke_admin(
 ):
     """Снимает права администратора с выбранного пользователя."""
     _ensure_admin(current_user)
-    user = await session.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+    user = await _get_user_or_404(session, user_id)
     # Не позволяем снимать права с себя, чтобы не потерять доступ.
     if user.id == current_user.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нельзя снять права с самого себя.")
     user.is_admin = False
+    await session.commit()
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/users/{user_id}/ban", response_class=HTMLResponse, name="admin_ban")
+async def ban_user(
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    user = await _get_user_or_404(session, user_id)
+    user.is_banned = True
+    await session.commit()
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/users/{user_id}/unban", response_class=HTMLResponse, name="admin_unban")
+async def unban_user(
+    user_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    user = await _get_user_or_404(session, user_id)
+    user.is_banned = False
+    await session.commit()
+    return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/users/{user_id}/password", response_class=HTMLResponse, name="admin_user_password")
+async def change_user_password(
+    request: Request,
+    user_id: int,
+    new_password: str = Form(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    clean_password = (new_password or "").strip()
+    if len(clean_password) < 6:
+        return await _render_users_page(
+            request, session, current_user, form_error="Пароль должен содержать минимум 6 символов."
+        )
+    user = await _get_user_or_404(session, user_id)
+    user.password_hash = hash_password(clean_password)
     await session.commit()
     return RedirectResponse(url="/admin/users", status_code=status.HTTP_303_SEE_OTHER)

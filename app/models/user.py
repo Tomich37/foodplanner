@@ -11,6 +11,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.recipe import Recipe
+    from app.models.menu import Menu
 
 
 class User(Base):
@@ -20,9 +21,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
-    is_admin: Mapped[bool] = mapped_column(
-        Boolean, server_default=expression.false(), default=False, nullable=False
-    )
+    is_admin: Mapped[bool] = mapped_column(Boolean, server_default=expression.false(), default=False, nullable=False)
+    is_banned: Mapped[bool] = mapped_column(Boolean, server_default=expression.false(), default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -50,6 +50,12 @@ def create_app() -> FastAPI:
             )
             await conn.execute(
                 text(
+                    "ALTER TABLE IF EXISTS users "
+                    "ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
+            await conn.execute(
+                text(
                     "ALTER TABLE IF EXISTS recipe_ingredients "
                     "ADD COLUMN IF NOT EXISTS unit VARCHAR(16) NOT NULL DEFAULT 'g'"
                 )

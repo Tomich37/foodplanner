@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Админка · Пользователи{% endblock %}
+{% block title %}Администрирование · Пользователи{% endblock %}
 
 {% block content %}
 {% set admin_list = users | selectattr("is_admin") | list %}
@@ -9,17 +9,17 @@
 <section class="admin-users">
     <div class="container">
         <div class="admin-nav">
-            <a href="{{ url_for('admin_users') }}" class="admin-nav__link admin-nav__link--active"
-                >Пользователи</a
-            >
+            <a href="{{ url_for('admin_users') }}" class="admin-nav__link admin-nav__link--active">Пользователи</a>
             <a href="{{ url_for('admin_tags') }}" class="admin-nav__link">Теги</a>
         </div>
         <div class="admin-users__header">
             <div>
-                <p class="eyebrow">Администрирование</p>
-                <h1>Управление пользователями</h1>
+                <p class="eyebrow">Управление сообществом</p>
+                <h1>Панель пользователей</h1>
                 <p class="admin-users__subtitle">
-                    Назначайте или снимайте права администраторов. Используйте фильтры и поиск, чтобы быстро найти нужного человека.
+                    Назначайте администраторов, сбрасывайте пароли и блокируйте учетные записи, которые нарушают правила.
+                    Блокировка запрещает пользователю публиковать новые рецепты, но не мешает ему пользоваться остальными
+                    возможностями сервиса.
                 </p>
             </div>
             <div class="admin-users__stats">
@@ -32,11 +32,15 @@
                     <div class="stat-card__value">{{ admin_list|length }}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-card__label">Обычные</div>
+                    <div class="stat-card__label">Обычные аккаунты</div>
                     <div class="stat-card__value">{{ user_list|length }}</div>
                 </div>
             </div>
         </div>
+
+        {% if form_error %}
+        <div class="form-error">{{ form_error }}</div>
+        {% endif %}
 
         <div class="admin-users__controls">
             <div class="btn-group">
@@ -45,7 +49,7 @@
                 <button class="btn btn--ghost btn--small filter-btn" data-filter="user">Пользователи</button>
             </div>
             <div class="search-box">
-                <input type="search" id="user-search" placeholder="Поиск по e-mail или имени" />
+                <input type="search" id="user-search" placeholder="Поиск по имени или e-mail" />
             </div>
         </div>
 
@@ -64,36 +68,81 @@
                         <div class="user-card__name">{{ user.full_name or user.email }}</div>
                         <div class="user-card__email">{{ user.email }}</div>
                         <div class="user-card__meta">
-                            ID: {{ user.id }} · Зарегистрирован: {{ user.created_at.strftime('%d.%m.%Y') if user.created_at else '—' }}
+                            ID {{ user.id }} · зарегистрирован:
+                            {{ user.created_at.strftime('%d.%m.%Y') if user.created_at else '—' }}
                         </div>
                     </div>
-                    <span class="badge {{ 'badge--success' if user.is_admin else '' }}">
-                        {{ 'Администратор' if user.is_admin else 'Пользователь' }}
-                    </span>
+                    <div class="user-card__badges">
+                        <span class="badge {{ 'badge--success' if user.is_admin else '' }}">
+                            {{ 'Администратор' if user.is_admin else 'Пользователь' }}
+                        </span>
+                        {% if user.is_banned %}
+                        <span class="badge badge--danger">Заблокирован</span>
+                        {% endif %}
+                    </div>
                 </div>
 
+                {% if user.is_banned %}
+                <p class="user-card__warning">
+                    Пользователь заблокирован и не может публиковать новые рецепты.
+                </p>
+                {% endif %}
+
                 <div class="user-card__actions">
-                    <a
-                        href="{{ url_for('user_profile', user_id=user.id) }}"
-                        class="btn btn--ghost btn--small"
-                    >
-                        Профиль
-                    </a>
-                    {% if user.is_admin %}
-                    <form method="post" action="{{ url_for('admin_revoke', user_id=user.id) }}" onsubmit="return confirm('Снять права администратора?');">
-                        <button
-                            type="submit"
-                            class="btn btn--ghost btn--danger btn--small"
-                            {% if user.id == current_user.id %}disabled title="Нельзя снять права с себя"{% endif %}
+                    <div class="user-card__actions-row">
+                        <a href="{{ url_for('user_profile', user_id=user.id) }}" class="btn btn--ghost btn--small">
+                            Профиль
+                        </a>
+                        {% if user.is_admin %}
+                        <form
+                            method="post"
+                            action="{{ url_for('admin_revoke', user_id=user.id) }}"
+                            onsubmit="return confirm('Снять права администратора?');"
                         >
-                            Снять админа
-                        </button>
+                            <button
+                                type="submit"
+                                class="btn btn--ghost btn--danger btn--small"
+                                {% if user.id == current_user.id %}disabled title="Нельзя снять права с себя"{% endif %}
+                            >
+                                Снять права
+                            </button>
+                        </form>
+                        {% else %}
+                        <form method="post" action="{{ url_for('admin_grant', user_id=user.id) }}">
+                            <button type="submit" class="btn btn--primary btn--small">Назначить админом</button>
+                        </form>
+                        {% endif %}
+                        {% if user.is_banned %}
+                        <form method="post" action="{{ url_for('admin_unban', user_id=user.id) }}">
+                            <button type="submit" class="btn btn--ghost btn--small">Разблокировать</button>
+                        </form>
+                        {% else %}
+                        <form
+                            method="post"
+                            action="{{ url_for('admin_ban', user_id=user.id) }}"
+                            onsubmit="return confirm('Заблокировать пользователя? Он потеряет возможность создавать рецепты.');"
+                        >
+                            <button type="submit" class="btn btn--ghost btn--small">Заблокировать</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <form
+                        method="post"
+                        action="{{ url_for('admin_user_password', user_id=user.id) }}"
+                        class="user-card__password"
+                    >
+                        <label>
+                            <span>Новый пароль</span>
+                            <input
+                                type="password"
+                                name="new_password"
+                                minlength="6"
+                                required
+                                placeholder="Не менее 6 символов"
+                            />
+                        </label>
+                        <button type="submit" class="btn btn--primary btn--small">Сменить</button>
                     </form>
-                    {% else %}
-                    <form method="post" action="{{ url_for('admin_grant', user_id=user.id) }}">
-                        <button type="submit" class="btn btn--primary btn--small">Сделать админом</button>
-                    </form>
-                    {% endif %}
                 </div>
             </article>
             {% endfor %}

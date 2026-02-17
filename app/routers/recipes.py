@@ -325,6 +325,11 @@ async def new_recipe(
     current_user: User = Depends(get_current_user_required),
 ):
     """Форма добавления нового рецепта."""
+    if current_user.is_banned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ваш аккаунт заблокирован. Добавление новых рецептов недоступно.",
+        )
     referrer = request.headers.get("referer") or ""
     base_url = str(request.base_url)
     back_url = referrer if referrer.startswith(base_url) else str(request.url_for("recipes_list"))
@@ -363,6 +368,11 @@ async def create_recipe(
     step_images: list[UploadFile] | None = File(None),
 ):
     """Создает рецепт и сохраняет шаги/ингредиенты."""
+    if current_user.is_banned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ваш аккаунт заблокирован. Добавление новых рецептов недоступно.",
+        )
     step_texts = recipe_service.clean_steps(steps)
     ingredients = recipe_service.prepare_ingredients(ingredient_names, ingredient_amounts, ingredient_units)
     extra_models = await fetch_extra_tag_models(session)

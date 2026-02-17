@@ -14,7 +14,11 @@
                 </p>
             </div>
             {% if current_user %}
-            <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
+                {% if current_user.is_banned %}
+                <button type="button" class="btn btn--primary" data-banned-create>Создать рецепт</button>
+                {% else %}
+                <a href="{{ url_for('recipes_new') }}" class="btn btn--primary">Создать рецепт</a>
+                {% endif %}
             {% endif %}
         </div>
         <div class="recipes-filters">
