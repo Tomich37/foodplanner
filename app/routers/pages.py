@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.config import TEMPLATES_DIR
+from app.core.config import TEMPLATES_DIR, settings
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models.menu import Menu, MenuDay, MenuMeal
@@ -22,6 +22,7 @@ from app.services.unit_converter import UnitConverter
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["static_version"] = settings.static_version
 # Глобальные helper'ы в шаблонах.
 templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 unit_converter = UnitConverter()

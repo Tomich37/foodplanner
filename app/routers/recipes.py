@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.config import STATIC_DIR, TEMPLATES_DIR
+from app.core.config import STATIC_DIR, TEMPLATES_DIR, settings
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models import Recipe, RecipeIngredient, RecipeStep, User, RecipeExtraTag
@@ -27,6 +27,7 @@ UPLOADS_DIR = STATIC_DIR / "uploads"
 templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 unit_converter = UnitConverter()
 templates.env.globals["format_amount"] = unit_converter.format_human
+templates.env.globals["static_version"] = settings.static_version
 
 
 @dataclass(frozen=True)
