@@ -55,12 +55,6 @@
                         </div>
                         {% endif %}
                         {% if extra_tags %}
-                        {% set extra_ns = namespace(count=0) %}
-                        {% for tag in extra_tags %}
-                            {% if tag.value in selected_tags %}
-                                {% set extra_ns.count = extra_ns.count + 1 %}
-                            {% endif %}
-                        {% endfor %}
                         <div class="recipe-form__tags-extra" data-tag-dropdown>
                             <button
                                 type="button"
@@ -71,7 +65,7 @@
                             >
                                 <span>Дополнительные теги</span>
                                 <span class="recipe-form__tags-extra-count" data-tag-dropdown-count>
-                                    {% if extra_ns.count %}({{ extra_ns.count }}){% endif %}
+                                    {% if selected_extra_tags %}({{ selected_extra_tags | length }}){% endif %}
                                 </span>
                                 <span class="recipe-form__tags-extra-arrow" aria-hidden="true">&#9662;</span>
                             </button>

@@ -99,19 +99,6 @@
     margin: 0;
 }
 
-.recipe-form__tags-primary {
-    flex: 1 1 280px;
-    min-width: 220px;
-}
-
-.recipe-form__tags-title {
-    margin: 0 0 6px;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-}
-
 .recipe-form__tags-extra {
     position: relative;
     display: flex;
