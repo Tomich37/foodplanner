@@ -144,6 +144,7 @@
                     <option value="ml">миллилитры</option>
                     <option value="tbsp">ст. л.</option>
                     <option value="tsp">ч. л.</option>
+                    <option value="pcs">штуки</option>
                     <option value="taste">по вкусу</option>
                 </select>
             </div>
