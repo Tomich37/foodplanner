@@ -3,6 +3,7 @@
 {% block title %}FoodPlanner — план питания на каждый день{% endblock %}
 
 {% block content %}
+<div class="home-page">
 <section class="hero">
     <div class="container hero__inner">
         <div class="hero__text">
@@ -114,4 +115,9 @@
     </div>
 </section>
 {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/home.css') }}?v={{ static_version }}" />
 {% endblock %}
