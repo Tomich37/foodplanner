@@ -118,7 +118,7 @@ class MenuPlanner:
                 key_name = name.lower()
                 entry = shopping.setdefault(
                     key_name,
-                    {"name": name, "mass": 0.0, "volume": 0.0, "other": False},
+                    {"name": name, "mass": 0.0, "volume": 0.0, "count": 0.0, "other": False},
                 )
                 base_amount, unit_type = self.unit_converter.to_base(
                     float(ingredient.amount or 0), getattr(ingredient, "unit", None)
@@ -127,6 +127,8 @@ class MenuPlanner:
                     entry["mass"] += base_amount
                 elif unit_type == "volume" and base_amount:
                     entry["volume"] += base_amount
+                elif unit_type == "count" and base_amount is not None:
+                    entry["count"] += base_amount
                 else:
                     entry["other"] = True
 
@@ -136,11 +138,11 @@ class MenuPlanner:
         for item in shopping.values():
             display = "по вкусу" if item.get("other") else ""
             if item.get("mass", 0) > 0:
-                value, label = self.unit_converter.format_total(item["mass"], "mass")
-                display = f"{value:.2f} {label}"
+                display = self.unit_converter.format_human(item["mass"], "g")
             elif item.get("volume", 0) > 0:
-                value, label = self.unit_converter.format_total(item["volume"], "volume")
-                display = f"{value:.2f} {label}"
+                display = self.unit_converter.format_human(item["volume"], "ml")
+            elif item.get("count", 0) > 0:
+                display = self.unit_converter.format_human(item["count"], "pcs")
             if not display:
                 display = "—"
             shopping_list.append({"name": item["name"], "display": display})

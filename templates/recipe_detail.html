@@ -69,7 +69,7 @@
                 {% for item in recipe.ingredients %}
                 <li>
                     <span>{{ item.name }}</span>
-                    <span class="recipe-ingredients__amount">{{ format_amount(item.amount, item.unit) }}</span>
+                    <span class="recipe-ingredients__amount">{{ format_amount(item.amount, item.unit, True) }}</span>
                 </li>
                 {% endfor %}
             </ul>
