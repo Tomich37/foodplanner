@@ -32,6 +32,99 @@
         taste: "по вкусу",
     };
 
+    const closeUnitSelect = (selectRoot) => {
+        if (!selectRoot) {
+            return;
+        }
+        selectRoot.classList.remove("is-open");
+        const trigger = selectRoot.querySelector("[data-unit-trigger]");
+        trigger?.setAttribute("aria-expanded", "false");
+    };
+
+    const closeAllUnitSelects = (exceptRoot = null) => {
+        document.querySelectorAll(".unit-select.is-open").forEach((selectRoot) => {
+            if (exceptRoot && selectRoot === exceptRoot) {
+                return;
+            }
+            closeUnitSelect(selectRoot);
+        });
+    };
+
+    const enhanceUnitSelect = (nativeSelect) => {
+        if (!nativeSelect || nativeSelect.dataset.enhanced === "1") {
+            return;
+        }
+
+        nativeSelect.dataset.enhanced = "1";
+        nativeSelect.classList.add("unit-select__native");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "unit-select";
+        nativeSelect.parentNode.insertBefore(wrapper, nativeSelect);
+        wrapper.appendChild(nativeSelect);
+
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "unit-select__trigger";
+        trigger.setAttribute("data-unit-trigger", "");
+        trigger.setAttribute("aria-expanded", "false");
+
+        const label = document.createElement("span");
+        label.className = "unit-select__label";
+        trigger.appendChild(label);
+
+        const arrow = document.createElement("span");
+        arrow.className = "unit-select__arrow";
+        arrow.setAttribute("aria-hidden", "true");
+        trigger.appendChild(arrow);
+
+        const menu = document.createElement("div");
+        menu.className = "unit-select__menu";
+        menu.setAttribute("data-unit-menu", "");
+
+        const syncState = () => {
+            const selectedOption = nativeSelect.options[nativeSelect.selectedIndex] || nativeSelect.options[0];
+            label.textContent = selectedOption?.textContent || "";
+
+            menu.querySelectorAll(".unit-select__option").forEach((optionBtn) => {
+                optionBtn.classList.toggle("is-active", optionBtn.dataset.value === nativeSelect.value);
+            });
+        };
+
+        Array.from(nativeSelect.options).forEach((option) => {
+            const optionBtn = document.createElement("button");
+            optionBtn.type = "button";
+            optionBtn.className = "unit-select__option";
+            optionBtn.dataset.value = option.value;
+            optionBtn.textContent = option.textContent || option.value;
+            optionBtn.addEventListener("click", () => {
+                nativeSelect.value = option.value;
+                nativeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+                closeUnitSelect(wrapper);
+                trigger.focus();
+            });
+            menu.appendChild(optionBtn);
+        });
+
+        trigger.addEventListener("click", (event) => {
+            event.preventDefault();
+            const isOpen = wrapper.classList.contains("is-open");
+            closeAllUnitSelects(wrapper);
+            if (isOpen) {
+                closeUnitSelect(wrapper);
+                return;
+            }
+            wrapper.classList.add("is-open");
+            trigger.setAttribute("aria-expanded", "true");
+        });
+
+        nativeSelect.addEventListener("change", syncState);
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(menu);
+        syncState();
+    };
+
     const createStepTemplate = (index) => {
         const existingHidden = isEditForm
             ? `<input type="hidden" name="existing_step_images" value="" />`
@@ -77,6 +170,7 @@
             input.value = item.name;
             if (unitSelect) {
                 unitSelect.value = item.unit || "g";
+                unitSelect.dispatchEvent(new Event("change", { bubbles: true }));
             }
             currentSuggestions = [];
             list.innerHTML = "";
@@ -135,7 +229,10 @@
         document.addEventListener("click", hideList);
     };
 
-    document.querySelectorAll(".ingredient-row").forEach(attachAutocomplete);
+    document.querySelectorAll(".ingredient-row").forEach((row) => {
+        attachAutocomplete(row);
+        enhanceUnitSelect(row.querySelector("select[name='ingredient_units']"));
+    });
 
     addIngredientBtn?.addEventListener("click", () => {
         const row = document.createElement("div");
@@ -166,6 +263,7 @@
         `;
         ingredientsWrapper.appendChild(row);
         attachAutocomplete(row);
+        enhanceUnitSelect(row.querySelector("select[name='ingredient_units']"));
     });
 
     tagButtons.forEach((button) => {
@@ -185,11 +283,13 @@
     });
 
     const updateTagDropdownCount = () => {
-        if (!tagDropdownCount) {
-            return;
-        }
         const checked = tagDropdownCheckboxes.filter((checkbox) => checkbox.checked).length;
-        tagDropdownCount.textContent = checked ? `(${checked})` : "";
+        if (tagDropdownCount) {
+            tagDropdownCount.textContent = checked ? `(${checked})` : "";
+        }
+        if (tagDropdownToggle) {
+            tagDropdownToggle.classList.toggle("tag-button--active", checked > 0);
+        }
     };
 
     const closeTagDropdown = () => {
@@ -223,6 +323,11 @@
     });
 
     document.addEventListener("click", (event) => {
+        const clickTarget = event.target;
+        const unitSelectRoot =
+            clickTarget instanceof Element ? clickTarget.closest(".unit-select") : null;
+        closeAllUnitSelects(unitSelectRoot || null);
+
         if (!tagDropdown) {
             return;
         }
@@ -234,6 +339,7 @@
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+            closeAllUnitSelects();
             closeTagDropdown();
         }
     });
