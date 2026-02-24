@@ -5,9 +5,10 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import STATIC_DIR, settings
 from app.db import base
-from app.db.session import engine
+from app.db.session import AsyncSessionLocal, engine
 from app.routers import admin, auth, pages
 from app.routers import recipes, profile
+from app.services.ingredient_catalog import sync_catalog_from_recipe_ingredients
 
 DEFAULT_EXTRA_TAGS = (
     ("snack", "Перекусы"),
@@ -71,6 +72,10 @@ def create_app() -> FastAPI:
                         ),
                         {"value": value, "label": label},
                     )
+
+        async with AsyncSessionLocal() as session:
+            await sync_catalog_from_recipe_ingredients(session)
+            await session.commit()
 
     return application
 

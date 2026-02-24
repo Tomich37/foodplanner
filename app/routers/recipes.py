@@ -18,6 +18,11 @@ from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models import Recipe, RecipeIngredient, RecipeStep, User, RecipeExtraTag
 from app.services.cover_resolver import recipe_cover_resolver
+from app.services.ingredient_catalog import (
+    canonical_name_for_value,
+    fetch_ingredient_alias_map,
+    sync_ingredient_catalog,
+)
 from app.services.unit_converter import UnitConverter
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
@@ -379,6 +384,7 @@ async def create_recipe(
     extra_tag_values = [tag.value for tag in extra_models]
     selected_tags = recipe_service.normalize_tags(tags, extra_tag_values)
     recipe_service.validate_common_fields(title, step_texts, ingredients)
+    await sync_ingredient_catalog(session, [name for name, _, _ in ingredients])
 
     recipe = Recipe(
         title=title.strip(),
@@ -461,6 +467,7 @@ async def update_recipe(
     extra_tag_values = [tag.value for tag in extra_models]
     selected_tags = recipe_service.normalize_tags(tags, extra_tag_values)
     recipe_service.validate_common_fields(title, cleaned_steps, ingredients)
+    await sync_ingredient_catalog(session, [name for name, _, _ in ingredients])
 
     recipe.title = title.strip()
     recipe.description = description.strip() or None
@@ -517,6 +524,7 @@ async def ingredient_suggest(
     current_user: User | None = Depends(get_current_user),
 ):
     """Возвращает подсказки по ингредиентам (имя + единица) для автодополнения."""
+    alias_map = await fetch_ingredient_alias_map(session)
     query = (
         select(RecipeIngredient.name, RecipeIngredient.unit)
         .where(func.lower(RecipeIngredient.name).like(f"%{q.lower()}%"))
@@ -527,7 +535,8 @@ async def ingredient_suggest(
     seen: set[str] = set()
     suggestions = []
     for name, unit in rows:
-        key = (name or "").strip()
+        raw_name = (name or "").strip()
+        key = canonical_name_for_value(raw_name, alias_map)
         if not key or key.lower() in seen:
             continue
         seen.add(key.lower())

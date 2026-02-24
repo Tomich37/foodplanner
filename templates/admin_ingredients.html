@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Админ · Ингредиенты{% endblock %}
+
+{% block content %}
+<section class="admin-tags">
+    <div class="container">
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_users') }}" class="admin-nav__link">Пользователи</a>
+            <a href="{{ url_for('admin_tags') }}" class="admin-nav__link">Теги</a>
+            <a href="{{ url_for('admin_ingredients') }}" class="admin-nav__link admin-nav__link--active">Ингредиенты</a>
+        </div>
+
+        <div class="admin-tags__header">
+            <div>
+                <p class="eyebrow">Управление справочником</p>
+                <h1>Канонические ингредиенты и алиасы</h1>
+                <p class="admin-tags__subtitle">
+                    Справочник используется для объединения похожих названий в списке покупок планов питания.
+                    Новые названия автоматически добавляются при создании и редактировании рецептов.
+                </p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__label">Канонов / алиасов</div>
+                <div class="stat-card__value">{{ catalog|length }} / {{ alias_count }}</div>
+            </div>
+        </div>
+
+        {% if info_message %}
+        <div class="form-error" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">
+            {{ info_message }}
+        </div>
+        {% endif %}
+        {% if form_error %}
+        <div class="form-error">{{ form_error }}</div>
+        {% endif %}
+
+        <div class="admin-tags__grid">
+            <div class="admin-tags__card">
+                <h2>Добавить канон и алиасы</h2>
+                <p class="admin-tags__hint">
+                    Канон — это итоговое имя в списке покупок. Алиасы можно перечислить через запятую или с новой строки.
+                </p>
+                <form method="post" action="{{ url_for('admin_create_ingredient_mapping') }}" class="admin-tags__form">
+                    <label for="canonical-name">Каноническое имя</label>
+                    <input
+                        id="canonical-name"
+                        type="text"
+                        name="canonical_name"
+                        list="canonical-name-suggestions"
+                        data-suggest-min="2"
+                        data-suggest-limit="12"
+                        autocomplete="off"
+                        required
+                        maxlength="120"
+                        placeholder="Например, лук"
+                    />
+                    <p class="admin-tags__hint">Подсказки появятся после ввода минимум 2 букв.</p>
+                    <label for="alias-list">Алиасы (опционально)</label>
+                    <textarea
+                        id="alias-list"
+                        name="aliases"
+                        rows="5"
+                        placeholder="лук репчатый, лук белый"
+                        style="border:1px solid #e5e7eb;border-radius:10px;padding:0.55rem 0.75rem;"
+                    ></textarea>
+                    <label style="display:flex;align-items:center;gap:0.5rem;">
+                        <input type="checkbox" name="overwrite_existing" value="true" />
+                        Перепривязать конфликтующие алиасы к этому канону
+                    </label>
+                    <button type="submit" class="btn btn--primary">Сохранить</button>
+                </form>
+                <datalist id="canonical-name-suggestions"></datalist>
+                <select id="canonical-name-options-source" hidden aria-hidden="true">
+                    {% for item in catalog %}
+                    <option value="{{ item.name }}"></option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="admin-tags__card">
+                <h2>Синхронизация из рецептов</h2>
+                <p class="admin-tags__hint">
+                    Использует существующие ингредиенты из БД и добавляет отсутствующие каноны/алиасы по правилам нормализации.
+                </p>
+                <form method="post" action="{{ url_for('admin_sync_ingredients') }}">
+                    <button type="submit" class="btn btn--ghost">Синхронизировать сейчас</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="admin-tags__card" style="margin-top:1.2rem;">
+            <h2>Текущий справочник</h2>
+            {% if catalog %}
+            <div class="admin-tags__toolbar">
+                <input
+                    type="search"
+                    id="catalog-search"
+                    class="admin-tags__search"
+                    placeholder="Поиск по канону, ключу или алиасу"
+                />
+                <div class="admin-tags__search-meta">
+                    Найдено: <span id="catalog-search-count">{{ catalog|length }}</span>
+                </div>
+            </div>
+            <p class="admin-tags__empty" id="catalog-empty-message" style="display:none;">
+                По вашему запросу ничего не найдено.
+            </p>
+            <div class="admin-tags__list">
+                {% for item in catalog %}
+                <article
+                    class="tag-row"
+                    style="align-items:flex-start;flex-direction:column;"
+                    data-catalog-item
+                    data-search="{{ (item.name ~ ' ' ~ item.normalized_name ~ ' ' ~ (item.aliases | map(attribute='alias') | join(' '))) | lower }}"
+                >
+                    <div style="width:100%;display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start;">
+                        <div>
+                            <div class="tag-row__label">{{ item.name }}</div>
+                            <div class="tag-row__meta">Нормализованный ключ: <span>{{ item.normalized_name }}</span></div>
+                        </div>
+                        <form
+                            method="post"
+                            action="{{ url_for('admin_delete_ingredient', ingredient_id=item.id) }}"
+                            onsubmit="return confirm('Удалить канонический ингредиент и все его алиасы?');"
+                        >
+                            <button type="submit" class="btn btn--ghost btn--danger btn--small">Удалить канон</button>
+                        </form>
+                    </div>
+                    {% if item.aliases %}
+                    <div style="width:100%;display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.6rem;">
+                        {% for alias in item.aliases %}
+                        <form method="post" action="{{ url_for('admin_delete_ingredient_alias', alias_id=alias.id) }}">
+                            <button
+                                type="submit"
+                                class="btn btn--ghost btn--small"
+                                title="Удалить алиас {{ alias.alias }}"
+                            >
+                                {{ alias.alias }}
+                            </button>
+                        </form>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="admin-tags__hint">Пока нет алиасов.</p>
+                    {% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="admin-tags__empty">Справочник пуст. Создайте первый канонический ингредиент или запустите синхронизацию.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/admin_tags.css') }}?v={{ static_version }}" />
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/admin_ingredients.js') }}?v={{ static_version }}" defer></script>
+{% endblock %}

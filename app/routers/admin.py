@@ -1,18 +1,26 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import quote_plus
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import TEMPLATES_DIR, settings
 from app.core.security import hash_password
 from app.db.session import get_session
 from app.dependencies.users import get_current_user_required
-from app.models import RecipeExtraTag, User
+from app.models import IngredientAlias, IngredientCanonical, RecipeExtraTag, User
+from app.services.ingredient_catalog import (
+    attach_aliases_to_canonical,
+    get_or_create_canonical,
+    normalize_ingredient_name,
+    sync_catalog_from_recipe_ingredients,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -116,6 +124,44 @@ async def _render_tags_page(
     )
 
 
+def _split_aliases(raw_value: str) -> list[str]:
+    parts = re.split(r"[,\n;]+", raw_value or "")
+    return [part.strip() for part in parts if part.strip()]
+
+
+async def _fetch_ingredient_catalog(session: AsyncSession) -> list[IngredientCanonical]:
+    result = await session.execute(
+        select(IngredientCanonical)
+        .options(selectinload(IngredientCanonical.aliases))
+        .order_by(IngredientCanonical.name.asc())
+    )
+    return result.scalars().all()
+
+
+async def _render_ingredients_page(
+    request: Request,
+    session: AsyncSession,
+    current_user: User,
+    *,
+    form_error: str | None = None,
+    info_message: str | None = None,
+) -> HTMLResponse:
+    catalog = await _fetch_ingredient_catalog(session)
+    alias_count = sum(len(item.aliases) for item in catalog)
+    return templates.TemplateResponse(
+        "admin_ingredients.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "catalog": catalog,
+            "alias_count": alias_count,
+            "form_error": form_error,
+            "info_message": info_message,
+        },
+        status_code=status.HTTP_400_BAD_REQUEST if form_error else status.HTTP_200_OK,
+    )
+
+
 @router.get("/tags", response_class=HTMLResponse, name="admin_tags")
 async def admin_tags(
     request: Request,
@@ -185,6 +231,129 @@ async def admin_delete_tag(
     )
     await session.commit()
     return RedirectResponse(url="/admin/tags", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/ingredients", response_class=HTMLResponse, name="admin_ingredients")
+async def admin_ingredients(
+    request: Request,
+    message: str | None = Query(None),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    return await _render_ingredients_page(
+        request,
+        session,
+        current_user,
+        info_message=message,
+    )
+
+
+@router.post("/ingredients", response_class=HTMLResponse, name="admin_create_ingredient_mapping")
+async def admin_create_ingredient_mapping(
+    request: Request,
+    canonical_name: str = Form(...),
+    aliases: str = Form(""),
+    overwrite_existing: bool = Form(False),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    clean_canonical = (canonical_name or "").strip()
+    if not clean_canonical:
+        return await _render_ingredients_page(
+            request, session, current_user, form_error="Название канонического ингредиента обязательно."
+        )
+
+    normalized_canonical = normalize_ingredient_name(clean_canonical)
+    if not normalized_canonical:
+        return await _render_ingredients_page(
+            request, session, current_user, form_error="Название не удалось нормализовать."
+        )
+
+    canonical = await get_or_create_canonical(
+        session,
+        normalized_canonical,
+        display_name=normalized_canonical,
+    )
+    if not canonical:
+        return await _render_ingredients_page(
+            request, session, current_user, form_error="Не удалось создать канонический ингредиент."
+        )
+
+    alias_values = [clean_canonical, *_split_aliases(aliases)]
+    created_aliases, conflicts = await attach_aliases_to_canonical(
+        session,
+        canonical,
+        alias_values,
+        overwrite_existing=overwrite_existing,
+    )
+    if conflicts:
+        return await _render_ingredients_page(
+            request,
+            session,
+            current_user,
+            form_error=(
+                "Эти алиасы уже привязаны к другим ингредиентам: "
+                + ", ".join(sorted({normalize_ingredient_name(value) for value in conflicts}))
+                + "."
+            ),
+        )
+
+    await session.commit()
+    message = f"Обновлено. Канон: {canonical.name}. Добавлено алиасов: {created_aliases}."
+    return RedirectResponse(
+        url=f"/admin/ingredients?message={quote_plus(message)}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/ingredients/sync", response_class=HTMLResponse, name="admin_sync_ingredients")
+async def admin_sync_ingredients(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    stats = await sync_catalog_from_recipe_ingredients(session)
+    await session.commit()
+    message = (
+        f"Синхронизация завершена. Новых канонов: {stats.created_canonicals}, "
+        f"новых алиасов: {stats.created_aliases}."
+    )
+    return RedirectResponse(
+        url=f"/admin/ingredients?message={quote_plus(message)}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.post("/ingredients/aliases/{alias_id}/delete", response_class=HTMLResponse, name="admin_delete_ingredient_alias")
+async def admin_delete_ingredient_alias(
+    alias_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    alias = await session.get(IngredientAlias, alias_id)
+    if not alias:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Алиас не найден.")
+    await session.delete(alias)
+    await session.commit()
+    return RedirectResponse(url="/admin/ingredients", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/ingredients/{ingredient_id}/delete", response_class=HTMLResponse, name="admin_delete_ingredient")
+async def admin_delete_ingredient(
+    ingredient_id: int,
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    ingredient = await session.get(IngredientCanonical, ingredient_id)
+    if not ingredient:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ингредиент не найден.")
+    await session.delete(ingredient)
+    await session.commit()
+    return RedirectResponse(url="/admin/ingredients", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/users/{user_id}/revoke", response_class=HTMLResponse, name="admin_revoke")

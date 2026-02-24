@@ -111,3 +111,23 @@
     font-weight: 700;
     margin-top: 0.2rem;
 }
+
+.admin-tags__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.admin-tags__search {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    min-width: min(100%, 380px);
+    flex: 1 1 280px;
+}
+
+.admin-tags__search-meta {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
