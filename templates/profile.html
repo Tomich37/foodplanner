@@ -3,55 +3,82 @@
 {% block title %}Личный кабинет · FoodPlanner{% endblock %}
 
 {% block content %}
-<section class="profile">
+<section class="profile-page">
     <div class="container">
-        <div class="profile__card">
-            <h1>Личный кабинет</h1>
-            <p class="profile__subtitle">Обновите пароль, чтобы защитить свой аккаунт.</p>
+        <div class="profile-page__layout">
+            <aside class="profile-card profile-summary">
+                <div class="profile-summary__avatar">
+                    {{ (current_user.full_name or current_user.email)[0]|upper }}
+                </div>
+                <p class="profile-summary__eyebrow">Аккаунт</p>
+                <h1 class="profile-summary__title">{{ current_user.full_name or current_user.email }}</h1>
+                <p class="profile-summary__subtitle">Управляйте данными профиля и безопасностью аккаунта.</p>
 
-            <div class="profile__info">
-                <div><strong>E-mail:</strong> {{ current_user.email }}</div>
-                {% if current_user.full_name %}
-                <div><strong>Имя:</strong> {{ current_user.full_name }}</div>
+                <dl class="profile-summary__meta">
+                    <div class="profile-summary__meta-item">
+                        <dt>E-mail</dt>
+                        <dd>{{ current_user.email }}</dd>
+                    </div>
+                    {% if current_user.full_name %}
+                    <div class="profile-summary__meta-item">
+                        <dt>Имя</dt>
+                        <dd>{{ current_user.full_name }}</dd>
+                    </div>
+                    {% endif %}
+                    <div class="profile-summary__meta-item">
+                        <dt>Зарегистрирован</dt>
+                        <dd>{{ current_user.created_at.strftime('%d.%m.%Y') if current_user.created_at else '—' }}</dd>
+                    </div>
+                </dl>
+            </aside>
+
+            <div class="profile-card profile-security">
+                <div class="profile-security__head">
+                    <h2>Смена пароля</h2>
+                    <p>Обновите пароль, чтобы сохранить доступ к аккаунту в безопасности.</p>
+                </div>
+
+                {% if errors %}
+                <div class="profile-alert profile-alert--error">
+                    <ul>
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 {% endif %}
-                <div><strong>Зарегистрирован:</strong> {{ current_user.created_at.strftime('%d.%m.%Y') if current_user.created_at else '—' }}</div>
-            </div>
 
-            {% if errors %}
-            <div class="alert alert--error">
-                <ul>
-                    {% for error in errors %}
-                    <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
+                {% if success %}
+                <div class="profile-alert profile-alert--success">
+                    {{ success }}
+                </div>
+                {% endif %}
 
-            {% if success %}
-            <div class="alert alert--success">
-                {{ success }}
+                <form method="post" action="{{ url_for('profile_change_password') }}" class="profile-security__form">
+                    <div class="form-group">
+                        <label for="current_password">Текущий пароль</label>
+                        <input type="password" id="current_password" name="current_password" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">Новый пароль</label>
+                        <input type="password" id="new_password" name="new_password" minlength="6" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Повторите новый пароль</label>
+                        <input type="password" id="confirm_password" name="confirm_password" minlength="6" required />
+                    </div>
+                    <p class="profile-security__hint">Минимум 6 символов. Используйте цифры, буквы и специальные знаки.</p>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn--primary">Обновить пароль</button>
+                        <a href="{{ url_for('index') }}" class="btn btn--ghost">На главную</a>
+                    </div>
+                </form>
             </div>
-            {% endif %}
-
-            <form method="post" action="{{ url_for('profile_change_password') }}" class="profile__form">
-                <div class="form-group">
-                    <label for="current_password">Текущий пароль</label>
-                    <input type="password" id="current_password" name="current_password" required />
-                </div>
-                <div class="form-group">
-                    <label for="new_password">Новый пароль</label>
-                    <input type="password" id="new_password" name="new_password" minlength="6" required />
-                </div>
-                <div class="form-group">
-                    <label for="confirm_password">Повторите новый пароль</label>
-                    <input type="password" id="confirm_password" name="confirm_password" minlength="6" required />
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn--primary">Обновить пароль</button>
-                    <a href="/" class="btn btn--ghost">На главную</a>
-                </div>
-            </form>
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/profile.css') }}?v={{ static_version }}" />
 {% endblock %}
