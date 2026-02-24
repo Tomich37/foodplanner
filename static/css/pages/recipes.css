@@ -69,12 +69,15 @@
 .recipes-filters__extra-toggle {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding-right: 12px;
+    min-width: 110px;
+    padding-right: 14px;
 }
 
 .recipes-filters__extra-count {
     font-weight: 600;
+    color: var(--text-muted);
 }
 
 .recipes-filters__extra-panel {
@@ -98,11 +101,20 @@
 .recipes-filters__extra-arrow {
     font-size: 10px;
     transform: translateY(1px);
+    opacity: 0.7;
     transition: transform 0.15s ease;
 }
 
 .recipes-filters__extra.is-open .recipes-filters__extra-arrow {
     transform: rotate(180deg);
+}
+
+.recipes-filters__extra-toggle.tag-button--active .recipes-filters__extra-count {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.recipes-filters__extra-toggle.tag-button--active .recipes-filters__extra-arrow {
+    opacity: 0.9;
 }
 
 .recipes-filters__extra-list {
@@ -166,6 +178,76 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 18px;
+    align-items: stretch;
+}
+
+.recipes-list .recipe-card {
+    height: 100%;
+}
+
+.recipes-list .recipe-card__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.recipes-list .recipe-card__top {
+    align-items: flex-start;
+    min-height: 52px;
+    gap: 10px;
+}
+
+.recipes-list .recipe-card__title {
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.recipes-list .recipe-card__top .badge {
+    flex-shrink: 0;
+}
+
+.recipes-list .recipe-card__description {
+    margin: 0;
+    line-height: 1.45;
+    min-height: 5.8em;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+}
+
+.recipes-list .recipe-card__description--empty {
+    opacity: 0;
+    user-select: none;
+}
+
+.recipes-list .recipe-card__tags {
+    min-height: 26px;
+    max-height: 52px;
+    overflow: hidden;
+}
+
+.recipes-list .recipe-card__tags--empty {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.recipes-list .recipe-card__meta {
+    margin-top: 2px;
+}
+
+.recipes-list .recipe-card__actions {
+    margin-top: auto;
+    gap: 10px;
+}
+
+.recipes-list .recipe-card__actions .btn {
+    flex: 1;
+    min-width: 0;
 }
 
 .recipes-list__empty {
