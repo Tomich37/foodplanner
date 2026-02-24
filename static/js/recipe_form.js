@@ -23,6 +23,14 @@
         document.querySelector("input[name='existing_step_images']")
     );
     let stepCount = stepsWrapper.querySelectorAll(".recipe-step").length || 0;
+    const unitLabels = {
+        g: "граммы",
+        ml: "мл",
+        tbsp: "ст. л.",
+        tsp: "ч. л.",
+        pcs: "штуки",
+        taste: "по вкусу",
+    };
 
     const createStepTemplate = (index) => {
         const existingHidden = isEditForm
@@ -84,8 +92,15 @@
             currentSuggestions.forEach((item) => {
                 const option = document.createElement("button");
                 option.type = "button";
-                option.textContent = item.name;
                 option.dataset.unit = item.unit;
+                const nameEl = document.createElement("span");
+                nameEl.className = "autocomplete__name";
+                nameEl.textContent = item.name;
+                const metaEl = document.createElement("span");
+                metaEl.className = "autocomplete__meta";
+                metaEl.textContent = unitLabels[item.unit] || item.unit || "";
+                option.appendChild(nameEl);
+                option.appendChild(metaEl);
                 option.addEventListener("click", () => applySuggestion(item));
                 list.appendChild(option);
             });
