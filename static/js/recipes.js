@@ -79,7 +79,7 @@
 
     const requestSearch = async () => {
         if (!searchUrl) {
-            return;
+            return false;
         }
         const params = buildSearchParams();
         const query = searchInput ? searchInput.value.trim() : "";
@@ -87,7 +87,8 @@
             params.set("q", query);
         }
         updateHistory(params);
-        const requestUrl = params.toString() ? `${searchUrl}?${params}` : searchUrl;
+        const queryString = params.toString();
+        const requestUrl = queryString ? `${searchUrl}?${queryString}` : searchUrl;
 
         if (searchController && typeof searchController.abort === "function") {
             searchController.abort();
@@ -103,14 +104,16 @@
         try {
             const response = await fetch(requestUrl, fetchOptions);
             if (!response.ok) {
-                return;
+                return false;
             }
             const data = await response.json();
             resultsContainer.innerHTML = data.html || "";
+            return true;
         } catch (error) {
             if (!error || error.name !== "AbortError") {
                 console.error("Ошибка поиска рецептов", error);
             }
+            return false;
         }
     };
 
@@ -239,23 +242,33 @@
     updateExtraCount();
 
     if (clearSearchBtn) {
-        clearSearchBtn.addEventListener("click", () => {
+        clearSearchBtn.addEventListener("click", async () => {
             const params = buildSearchParams();
             updateHistory(params);
             if (searchInput) {
                 searchInput.value = "";
             }
-            debouncedSearch();
+            const ok = await requestSearch();
+            if (!ok) {
+                window.location.href = buildTarget(params);
+            }
         });
     }
 
-    searchForm.addEventListener("submit", (event) => {
+    searchForm.addEventListener("submit", async (event) => {
         if (!searchInput) {
             return;
         }
         event.preventDefault();
         searchInput.value = searchInput.value.trim();
-        requestSearch();
+        const ok = await requestSearch();
+        if (!ok) {
+            const params = buildSearchParams();
+            if (searchInput.value) {
+                params.set("q", searchInput.value);
+            }
+            window.location.href = buildTarget(params);
+        }
     });
 
     if (searchInput) {

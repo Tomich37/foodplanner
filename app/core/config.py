@@ -16,7 +16,7 @@ class Settings:
             "postgresql+asyncpg://postgres:postgres@localhost:5432/foodplanner",
         )
         self.secret_key = os.getenv("SECRET_KEY", "foodplanner-secret-key")
-        self.static_version = os.getenv("STATIC_VERSION", "24022026")
+        self.static_version = os.getenv("STATIC_VERSION", "24022026-2")
 
 
 settings = Settings()
