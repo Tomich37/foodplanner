@@ -10,20 +10,22 @@
                     {{ recipe.author.full_name or recipe.author.email }}
                 </span>
             </div>
-            {% if recipe.description %}
-            <p class="recipe-card__description">
+            <p class="recipe-card__description{% if not recipe.description %} recipe-card__description--empty{% endif %}">
+                {% if recipe.description %}
                 {{ recipe.description }}
+                {% else %}
+                &nbsp;
+                {% endif %}
             </p>
-            {% endif %}
-            {% if recipe.tags %}
-            <div class="recipe-card__tags">
+            <div class="recipe-card__tags{% if not recipe.tags %} recipe-card__tags--empty{% endif %}">
+                {% if recipe.tags %}
                 {% for tag in recipe.tags %}
                 <span class="badge badge--tag">
                     {{ tag_labels.get(tag, tag) if tag_labels else tag }}
                 </span>
                 {% endfor %}
+                {% endif %}
             </div>
-            {% endif %}
             <div class="recipe-card__meta">
                 <span>Шагов: {{ recipe.steps | length }}</span>
                 <span>Ингредиентов: {{ recipe.ingredients | length }}</span>

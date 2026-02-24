@@ -68,12 +68,12 @@
                     >
                         <button
                             type="button"
-                            class="btn btn--ghost btn--small recipes-filters__extra-toggle"
+                            class="btn btn--ghost tag-button recipes-filters__extra-toggle {% if selected_extra_tags %}tag-button--active{% endif %}"
                             data-extra-dropdown-toggle
                             aria-expanded="false"
                             aria-haspopup="true"
                         >
-                            <span>Дополнительные теги</span>
+                            <span>Доп. теги</span>
                             <span class="recipes-filters__extra-count" data-extra-selected-count>
                                 {% if selected_extra_tags %}({{ selected_extra_tags | length }}){% endif %}
                             </span>

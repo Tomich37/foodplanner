@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import TEMPLATES_DIR, settings
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
+from app.models import RecipeExtraTag
 from app.models.menu import Menu, MenuDay, MenuMeal
 from app.models.recipe import Recipe
 from app.models.user import User
@@ -170,6 +171,20 @@ MEAL_TYPES = (
     MealType(key="dinner", label="Ужин"),
 )
 menu_planner = MenuPlanner(MEAL_TYPES, unit_converter)
+PRIMARY_TAG_LABELS: dict[str, str] = {
+    "breakfast": "Завтраки",
+    "lunch": "Обеды",
+    "dinner": "Ужины",
+}
+
+
+async def fetch_recipe_tag_labels(session: AsyncSession) -> dict[str, str]:
+    """Возвращает словарь отображения ключа тега в человекочитаемое имя."""
+    labels = dict(PRIMARY_TAG_LABELS)
+    result = await session.execute(select(RecipeExtraTag))
+    for extra_tag in result.scalars().all():
+        labels[extra_tag.value] = extra_tag.label
+    return labels
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -444,6 +459,7 @@ async def user_profile(
         "admin": profile_user.is_admin,
         "joined": profile_user.created_at,
     }
+    tag_labels = await fetch_recipe_tag_labels(session)
 
     return templates.TemplateResponse(
         "user_profile.html",
@@ -453,6 +469,7 @@ async def user_profile(
             "profile_user": profile_user,
             "recipes": recipes,
             "stats": stats,
+            "tag_labels": tag_labels,
             "is_self": current_user.id == profile_user.id if current_user else False,
         },
     )

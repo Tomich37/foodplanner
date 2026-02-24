@@ -61,17 +61,21 @@
                     <div class="recipe-card__body">
                         <div class="recipe-card__top">
                             <h3 class="recipe-card__title">{{ recipe.title }}</h3>
+                        </div>
+                        <p class="recipe-card__description{% if not recipe.description %} recipe-card__description--empty{% endif %}">
+                            {% if recipe.description %}
+                            {{ recipe.description }}
+                            {% else %}
+                            &nbsp;
+                            {% endif %}
+                        </p>
+                        <div class="recipe-card__tags{% if not recipe.tags %} recipe-card__tags--empty{% endif %}">
                             {% if recipe.tags %}
-                            <div class="recipe-card__tags">
-                                {% for tag in recipe.tags %}
-                                <span class="badge badge--tag">{{ tag }}</span>
-                                {% endfor %}
-                            </div>
+                            {% for tag in recipe.tags %}
+                            <span class="badge badge--tag">{{ tag_labels.get(tag, tag) if tag_labels is defined and tag_labels else tag }}</span>
+                            {% endfor %}
                             {% endif %}
                         </div>
-                        {% if recipe.description %}
-                        <p class="recipe-card__description">{{ recipe.description }}</p>
-                        {% endif %}
                         <div class="recipe-card__meta">
                             <span>Шагов: {{ recipe.steps | length }}</span>
                             <span>Ингредиентов: {{ recipe.ingredients | length }}</span>
