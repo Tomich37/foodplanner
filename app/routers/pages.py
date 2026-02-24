@@ -18,6 +18,7 @@ from app.models.menu import Menu, MenuDay, MenuMeal
 from app.models.recipe import Recipe
 from app.models.user import User
 from app.services.cover_resolver import recipe_cover_resolver
+from app.services.ingredient_catalog import canonical_name_for_value, fetch_ingredient_alias_map
 from app.services.unit_converter import UnitConverter
 
 router = APIRouter()
@@ -87,6 +88,7 @@ class MenuPlanner:
         grouped: dict[str, list[Recipe]],
         days: int,
         selection_map: dict[tuple[int, str], int],
+        alias_map: dict[str, str] | None = None,
     ) -> MenuPlanResult:
         """Формирует меню на заданное количество дней и собирает список покупок."""
         recipe_by_id = {recipe.id: recipe for recipe in recipes}
@@ -115,10 +117,12 @@ class MenuPlanner:
                 name = (ingredient.name or "").strip()
                 if not name:
                     continue
-                key_name = name.lower()
+                key_name = canonical_name_for_value(name, alias_map)
+                if not key_name:
+                    continue
                 entry = shopping.setdefault(
                     key_name,
-                    {"name": name, "mass": 0.0, "volume": 0.0, "count": 0.0, "other": False},
+                    {"name": key_name, "mass": 0.0, "volume": 0.0, "count": 0.0, "other": False},
                 )
                 base_amount, unit_type = self.unit_converter.to_base(
                     float(ingredient.amount or 0), getattr(ingredient, "unit", None)
@@ -261,6 +265,7 @@ async def menu_builder(
     recipes = result.scalars().all()
     recipe_ids = {recipe.id for recipe in recipes}
     grouped_recipes = menu_planner.split_recipes_by_meal(recipes)
+    alias_map = await fetch_ingredient_alias_map(session)
 
     # Разбираем текущие выборы пользователя из query-параметров.
     selection_map = menu_planner.parse_selection(selection, recipe_ids)
@@ -312,7 +317,7 @@ async def menu_builder(
             error_message = error_message or "Рецептов пока нет, составить меню невозможно."
         else:
             menu_plan_result = menu_planner.build_menu(
-                recipes, grouped_recipes, days, selection_map
+                recipes, grouped_recipes, days, selection_map, alias_map
             )
             selection_map = menu_plan_result.selection_map
 
@@ -366,7 +371,8 @@ async def save_menu(
     recipe_ids = {recipe.id for recipe in recipes}
     selection_map = menu_planner.parse_selection(selection, recipe_ids)
     grouped_recipes = menu_planner.split_recipes_by_meal(recipes)
-    menu_plan_result = menu_planner.build_menu(recipes, grouped_recipes, days, selection_map)
+    alias_map = await fetch_ingredient_alias_map(session)
+    menu_plan_result = menu_planner.build_menu(recipes, grouped_recipes, days, selection_map, alias_map)
 
     if menu_id:
         menu = await session.get(Menu, menu_id)
