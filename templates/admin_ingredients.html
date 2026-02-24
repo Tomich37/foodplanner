@@ -47,10 +47,15 @@
                         id="canonical-name"
                         type="text"
                         name="canonical_name"
+                        list="canonical-name-suggestions"
+                        data-suggest-min="2"
+                        data-suggest-limit="12"
+                        autocomplete="off"
                         required
                         maxlength="120"
                         placeholder="Например, лук"
                     />
+                    <p class="admin-tags__hint">Подсказки появятся после ввода минимум 2 букв.</p>
                     <label for="alias-list">Алиасы (опционально)</label>
                     <textarea
                         id="alias-list"
@@ -65,6 +70,12 @@
                     </label>
                     <button type="submit" class="btn btn--primary">Сохранить</button>
                 </form>
+                <datalist id="canonical-name-suggestions"></datalist>
+                <select id="canonical-name-options-source" hidden aria-hidden="true">
+                    {% for item in catalog %}
+                    <option value="{{ item.name }}"></option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div class="admin-tags__card">
@@ -81,9 +92,28 @@
         <div class="admin-tags__card" style="margin-top:1.2rem;">
             <h2>Текущий справочник</h2>
             {% if catalog %}
+            <div class="admin-tags__toolbar">
+                <input
+                    type="search"
+                    id="catalog-search"
+                    class="admin-tags__search"
+                    placeholder="Поиск по канону, ключу или алиасу"
+                />
+                <div class="admin-tags__search-meta">
+                    Найдено: <span id="catalog-search-count">{{ catalog|length }}</span>
+                </div>
+            </div>
+            <p class="admin-tags__empty" id="catalog-empty-message" style="display:none;">
+                По вашему запросу ничего не найдено.
+            </p>
             <div class="admin-tags__list">
                 {% for item in catalog %}
-                <article class="tag-row" style="align-items:flex-start;flex-direction:column;">
+                <article
+                    class="tag-row"
+                    style="align-items:flex-start;flex-direction:column;"
+                    data-catalog-item
+                    data-search="{{ (item.name ~ ' ' ~ item.normalized_name ~ ' ' ~ (item.aliases | map(attribute='alias') | join(' '))) | lower }}"
+                >
                     <div style="width:100%;display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start;">
                         <div>
                             <div class="tag-row__label">{{ item.name }}</div>
@@ -127,4 +157,8 @@
 
 {% block extra_styles %}
 <link rel="stylesheet" href="{{ url_for('static', path='/css/pages/admin_tags.css') }}?v={{ static_version }}" />
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/admin_ingredients.js') }}?v={{ static_version }}" defer></script>
 {% endblock %}
