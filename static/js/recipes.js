@@ -7,21 +7,32 @@
     const searchInput = document.getElementById("recipes-search-input");
     const searchForm = document.querySelector("[data-recipes-search]");
     const resultsContainer = document.querySelector("[data-recipes-results]");
-    const searchUrl = searchForm?.dataset.searchUrl || "";
+    const searchUrl =
+        searchForm && searchForm.dataset ? searchForm.dataset.searchUrl || "" : "";
     const extraDropdown = document.querySelector("[data-extra-dropdown]");
-    const extraDropdownToggle = extraDropdown?.querySelector("[data-extra-dropdown-toggle]");
-    const extraDropdownPanel = extraDropdown?.querySelector("[data-extra-dropdown-panel]");
-    const extraApplyBtn = extraDropdown?.querySelector("[data-extra-apply]");
-    const extraClearBtn = extraDropdown?.querySelector("[data-extra-clear]");
-    const extraCountTarget = extraDropdown?.querySelector("[data-extra-selected-count]");
+    const extraDropdownToggle = extraDropdown
+        ? extraDropdown.querySelector("[data-extra-dropdown-toggle]")
+        : null;
+    const extraApplyBtn = extraDropdown
+        ? extraDropdown.querySelector("[data-extra-apply]")
+        : null;
+    const extraClearBtn = extraDropdown
+        ? extraDropdown.querySelector("[data-extra-clear]")
+        : null;
+    const extraCountTarget = extraDropdown
+        ? extraDropdown.querySelector("[data-extra-selected-count]")
+        : null;
     const extraTagCheckboxes = extraDropdown
         ? Array.from(extraDropdown.querySelectorAll("[data-extra-tag-checkbox]"))
         : [];
-    const extraTagValues = (extraDropdown?.dataset.extraTagValues || "")
+    const extraTagValues = ((extraDropdown && extraDropdown.dataset
+        ? extraDropdown.dataset.extraTagValues
+        : "") || "")
         .split(",")
         .map((value) => value.trim())
         .filter(Boolean);
-    let searchController;
+    const supportsAbortController = typeof window.AbortController === "function";
+    let searchController = null;
 
     if (!searchForm || !resultsContainer) {
         return;
@@ -35,7 +46,9 @@
 
     const updateHistory = (params) => {
         const target = buildTarget(params);
-        window.history?.replaceState?.({}, "", target);
+        if (window.history && typeof window.history.replaceState === "function") {
+            window.history.replaceState({}, "", target);
+        }
     };
 
     const getCurrentTags = () => {
@@ -69,26 +82,33 @@
             return;
         }
         const params = buildSearchParams();
-        const query = (searchInput?.value || "").trim();
+        const query = searchInput ? searchInput.value.trim() : "";
         if (query) {
             params.set("q", query);
         }
         updateHistory(params);
         const requestUrl = params.toString() ? `${searchUrl}?${params}` : searchUrl;
-        searchController?.abort();
-        searchController = new AbortController();
+
+        if (searchController && typeof searchController.abort === "function") {
+            searchController.abort();
+        }
+        searchController = supportsAbortController ? new AbortController() : null;
+        const fetchOptions = {
+            headers: { "X-Requested-With": "fetch" },
+        };
+        if (searchController) {
+            fetchOptions.signal = searchController.signal;
+        }
+
         try {
-            const response = await fetch(requestUrl, {
-                headers: { "X-Requested-With": "fetch" },
-                signal: searchController.signal,
-            });
+            const response = await fetch(requestUrl, fetchOptions);
             if (!response.ok) {
                 return;
             }
             const data = await response.json();
             resultsContainer.innerHTML = data.html || "";
         } catch (error) {
-            if (error.name !== "AbortError") {
+            if (!error || error.name !== "AbortError") {
                 console.error("Ошибка поиска рецептов", error);
             }
         }
@@ -109,18 +129,22 @@
         });
     });
 
-    resetBtn?.addEventListener("click", () => {
-        const params = new URLSearchParams(window.location.search);
-        params.delete("tags");
-        window.location.href = buildTarget(params);
-    });
+    if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+            const params = new URLSearchParams(window.location.search);
+            params.delete("tags");
+            window.location.href = buildTarget(params);
+        });
+    }
 
     const closeExtraDropdown = () => {
         if (!extraDropdown) {
             return;
         }
         extraDropdown.classList.remove("is-open");
-        extraDropdownToggle?.setAttribute("aria-expanded", "false");
+        if (extraDropdownToggle) {
+            extraDropdownToggle.setAttribute("aria-expanded", "false");
+        }
     };
 
     const openExtraDropdown = () => {
@@ -128,24 +152,28 @@
             return;
         }
         extraDropdown.classList.add("is-open");
-        extraDropdownToggle?.setAttribute("aria-expanded", "true");
+        if (extraDropdownToggle) {
+            extraDropdownToggle.setAttribute("aria-expanded", "true");
+        }
     };
 
-    extraDropdownToggle?.addEventListener("click", (event) => {
-        event.preventDefault();
-        const isOpen = extraDropdown?.classList.contains("is-open");
-        if (isOpen) {
-            closeExtraDropdown();
-        } else {
-            openExtraDropdown();
-        }
-    });
+    if (extraDropdownToggle) {
+        extraDropdownToggle.addEventListener("click", (event) => {
+            event.preventDefault();
+            const isOpen = extraDropdown && extraDropdown.classList.contains("is-open");
+            if (isOpen) {
+                closeExtraDropdown();
+            } else {
+                openExtraDropdown();
+            }
+        });
+    }
 
     document.addEventListener("click", (event) => {
         if (!extraDropdown) {
             return;
         }
-        if (extraDropdown.contains(event.target)) {
+        if (event.target && extraDropdown.contains(event.target)) {
             return;
         }
         closeExtraDropdown();
@@ -164,7 +192,9 @@
         if (!extraCountTarget) {
             return;
         }
-        const selectedCount = extraTagCheckboxes.filter((checkbox) => checkbox.checked).length;
+        const selectedCount = extraTagCheckboxes.filter(
+            (checkbox) => checkbox.checked
+        ).length;
         extraCountTarget.textContent = selectedCount ? `(${selectedCount})` : "";
     };
 
@@ -188,30 +218,36 @@
         });
     });
 
-    extraApplyBtn?.addEventListener("click", () => {
-        closeExtraDropdown();
-        applyExtraTags();
-    });
-
-    extraClearBtn?.addEventListener("click", () => {
-        extraTagCheckboxes.forEach((checkbox) => {
-            checkbox.checked = false;
+    if (extraApplyBtn) {
+        extraApplyBtn.addEventListener("click", () => {
+            closeExtraDropdown();
+            applyExtraTags();
         });
-        updateExtraCount();
-        closeExtraDropdown();
-        applyExtraTags();
-    });
+    }
+
+    if (extraClearBtn) {
+        extraClearBtn.addEventListener("click", () => {
+            extraTagCheckboxes.forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+            updateExtraCount();
+            closeExtraDropdown();
+            applyExtraTags();
+        });
+    }
 
     updateExtraCount();
 
-    clearSearchBtn?.addEventListener("click", () => {
-        const params = buildSearchParams();
-        updateHistory(params);
-        if (searchInput) {
-            searchInput.value = "";
-        }
-        debouncedSearch();
-    });
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener("click", () => {
+            const params = buildSearchParams();
+            updateHistory(params);
+            if (searchInput) {
+                searchInput.value = "";
+            }
+            debouncedSearch();
+        });
+    }
 
     searchForm.addEventListener("submit", (event) => {
         if (!searchInput) {
@@ -222,7 +258,9 @@
         requestSearch();
     });
 
-    searchInput?.addEventListener("input", () => {
-        debouncedSearch();
-    });
+    if (searchInput) {
+        searchInput.addEventListener("input", () => {
+            debouncedSearch();
+        });
+    }
 })();
