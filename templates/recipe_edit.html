@@ -252,13 +252,12 @@
                 <button type="button" class="btn btn--ghost" id="add-step-btn">Добавить ещё шаг</button>
                 <div class="form-actions">
                     <button type="submit" class="btn btn--primary">Сохранить изменения</button>
-                    <button
-                        type="button"
+                    <a
+                        href="{{ url_for('recipe_detail', recipe_id=recipe.id) }}"
                         class="btn btn--ghost"
-                        onclick="window.location.href='{{ url_for('recipe_detail', recipe_id=recipe.id) }}'"
                     >
                         Отмена
-                    </button>
+                    </a>
                 </div>
             </form>
         </div>
