@@ -229,8 +229,22 @@
         document.addEventListener("click", hideList);
     };
 
+    const removeIngredientRow = (row) => {
+        const rows = ingredientsWrapper.querySelectorAll(".ingredient-row");
+        if (rows.length <= 1) {
+            return;
+        }
+        row.remove();
+    };
+
+    const attachIngredientControls = (row) => {
+        const removeBtn = row.querySelector("[data-remove-ingredient]");
+        removeBtn?.addEventListener("click", () => removeIngredientRow(row));
+    };
+
     document.querySelectorAll(".ingredient-row").forEach((row) => {
         attachAutocomplete(row);
+        attachIngredientControls(row);
         enhanceUnitSelect(row.querySelector("select[name='ingredient_units']"));
     });
 
@@ -260,9 +274,18 @@
                     <option value="taste">по вкусу</option>
                 </select>
             </div>
+            <button
+                type="button"
+                class="btn btn--danger btn--small ingredient-row__remove"
+                data-remove-ingredient
+                aria-label="Удалить ингредиент"
+            >
+                −
+            </button>
         `;
         ingredientsWrapper.appendChild(row);
         attachAutocomplete(row);
+        attachIngredientControls(row);
         enhanceUnitSelect(row.querySelector("select[name='ingredient_units']"));
     });
 
