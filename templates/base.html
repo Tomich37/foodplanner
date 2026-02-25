@@ -58,7 +58,10 @@
                 <div class="profile-name">
                     {{ current_user.full_name or current_user.email }}
                 </div>
-                <a href="{{ url_for('logout') }}" class="profile-logout">Выйти</a>
+                <form method="post" action="{{ url_for('logout') }}">
+                    {{ csrf_input(request) }}
+                    <button type="submit" class="profile-logout">Выйти</button>
+                </form>
             </div>
         </div>
         {% else %}

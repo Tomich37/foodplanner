@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import uuid
+from io import BytesIO
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy import cast, func, or_, select, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, array
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import STATIC_DIR, TEMPLATES_DIR, settings
+from app.core.csrf import csrf_input
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models import Recipe, RecipeIngredient, RecipeStep, User, RecipeExtraTag
@@ -33,6 +37,7 @@ templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 unit_converter = UnitConverter()
 templates.env.globals["format_amount"] = unit_converter.format_human
 templates.env.globals["static_version"] = settings.static_version
+templates.env.globals["csrf_input"] = csrf_input
 
 
 @dataclass(frozen=True)
@@ -116,10 +121,29 @@ class RecipeService:
     async def save_upload(self, upload: UploadFile | None) -> str | None:
         if not upload or not upload.filename:
             return None
-        suffix = Path(upload.filename).suffix.lower()
-        filename = f"{uuid.uuid4().hex}{suffix}"
+        raw_content = await upload.read()
+        if not raw_content:
+            return None
+        if len(raw_content) > settings.upload_max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Файл слишком большой.",
+            )
+
+        try:
+            with Image.open(BytesIO(raw_content)) as source:
+                source.verify()
+            with Image.open(BytesIO(raw_content)) as source:
+                normalized = source.convert("RGB")
+        except (UnidentifiedImageError, OSError):
+            raise HTTPException(
+                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                detail="Разрешены только изображения JPEG/PNG.",
+            )
+
+        filename = f"{uuid.uuid4().hex}.jpg"
         destination = self.uploads_dir / filename
-        destination.write_bytes(await upload.read())
+        normalized.save(destination, format="JPEG", quality=88, optimize=True)
         return f"/static/uploads/{filename}"
 
     async def load_recipe(self, session: AsyncSession, recipe_id: int) -> Recipe:
@@ -230,6 +254,19 @@ def resolve_back_url(request: Request, fallback: str) -> str:
     referrer = request.headers.get("referer") or ""
     base_url = str(request.base_url)
     return referrer if referrer.startswith(base_url) else fallback
+
+
+def sanitize_next_url(next_url: str, fallback: str = "/") -> str:
+    """Оставляет только безопасные внутренние пути для редиректа."""
+    candidate = (next_url or "").strip()
+    if not candidate:
+        return fallback
+    parsed = urlsplit(candidate)
+    if parsed.scheme or parsed.netloc:
+        return fallback
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return fallback
+    return candidate
 
 
 async def fetch_filtered_recipes(
@@ -514,7 +551,8 @@ async def toggle_recipe_view(
     """Переключает режим минимального просмотра рецептов (с изображениями / без)."""
     current = bool(request.session.get("minimal_recipe_view"))
     request.session["minimal_recipe_view"] = not current
-    return RedirectResponse(url=next_url or "/", status_code=status.HTTP_303_SEE_OTHER)
+    safe_next_url = sanitize_next_url(next_url, "/")
+    return RedirectResponse(url=safe_next_url, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/ingredients", response_class=JSONResponse, name="ingredients_suggest")

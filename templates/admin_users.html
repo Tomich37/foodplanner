@@ -100,6 +100,7 @@
                             action="{{ url_for('admin_revoke', user_id=user.id) }}"
                             onsubmit="return confirm('Снять права администратора?');"
                         >
+                            {{ csrf_input(request) }}
                             <button
                                 type="submit"
                                 class="btn btn--ghost btn--danger btn--small"
@@ -110,11 +111,13 @@
                         </form>
                         {% else %}
                         <form method="post" action="{{ url_for('admin_grant', user_id=user.id) }}">
+                            {{ csrf_input(request) }}
                             <button type="submit" class="btn btn--primary btn--small">Назначить админом</button>
                         </form>
                         {% endif %}
                         {% if user.is_banned %}
                         <form method="post" action="{{ url_for('admin_unban', user_id=user.id) }}">
+                            {{ csrf_input(request) }}
                             <button type="submit" class="btn btn--ghost btn--small">Разблокировать</button>
                         </form>
                         {% else %}
@@ -123,6 +126,7 @@
                             action="{{ url_for('admin_ban', user_id=user.id) }}"
                             onsubmit="return confirm('Заблокировать пользователя? Он потеряет возможность создавать рецепты.');"
                         >
+                            {{ csrf_input(request) }}
                             <button type="submit" class="btn btn--ghost btn--small">Заблокировать</button>
                         </form>
                         {% endif %}
@@ -132,6 +136,7 @@
                         action="{{ url_for('admin_user_password', user_id=user.id) }}"
                         class="user-card__password"
                     >
+                        {{ csrf_input(request) }}
                         <label>
                             <span>Новый пароль</span>
                             <input

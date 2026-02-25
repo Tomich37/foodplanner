@@ -42,6 +42,7 @@
                     Канон — это итоговое имя в списке покупок. Алиасы можно перечислить через запятую или с новой строки.
                 </p>
                 <form method="post" action="{{ url_for('admin_create_ingredient_mapping') }}" class="admin-tags__form">
+                    {{ csrf_input(request) }}
                     <label for="canonical-name">Каноническое имя</label>
                     <input
                         id="canonical-name"
@@ -84,6 +85,7 @@
                     Использует существующие ингредиенты из БД и добавляет отсутствующие каноны/алиасы по правилам нормализации.
                 </p>
                 <form method="post" action="{{ url_for('admin_sync_ingredients') }}">
+                    {{ csrf_input(request) }}
                     <button type="submit" class="btn btn--ghost">Синхронизировать сейчас</button>
                 </form>
             </div>
@@ -124,6 +126,7 @@
                             action="{{ url_for('admin_delete_ingredient', ingredient_id=item.id) }}"
                             onsubmit="return confirm('Удалить канонический ингредиент и все его алиасы?');"
                         >
+                            {{ csrf_input(request) }}
                             <button type="submit" class="btn btn--ghost btn--danger btn--small">Удалить канон</button>
                         </form>
                     </div>
@@ -131,6 +134,7 @@
                     <div style="width:100%;display:flex;flex-wrap:wrap;gap:0.45rem;margin-top:0.6rem;">
                         {% for alias in item.aliases %}
                         <form method="post" action="{{ url_for('admin_delete_ingredient_alias', alias_id=alias.id) }}">
+                            {{ csrf_input(request) }}
                             <button
                                 type="submit"
                                 class="btn btn--ghost btn--small"

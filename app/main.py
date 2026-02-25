@@ -4,6 +4,7 @@ from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import STATIC_DIR, settings
+from app.core.middleware import CSRFMiddleware, MultipartBodyLimitMiddleware, SecurityHeadersMiddleware
 from app.db import base
 from app.db.session import AsyncSessionLocal, engine
 from app.routers import admin, auth, pages
@@ -22,7 +23,19 @@ DEFAULT_EXTRA_TAGS = (
 def create_app() -> FastAPI:
     application = FastAPI()
 
-    application.add_middleware(SessionMiddleware, secret_key=settings.secret_key, session_cookie="fp_sess")
+    # FastAPI применяет middleware в обратном порядке добавления.
+    # SessionMiddleware должен выполняться раньше CSRFMiddleware, чтобы был доступ к request.session.
+    application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(CSRFMiddleware)
+    application.add_middleware(MultipartBodyLimitMiddleware)
+    application.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.secret_key,
+        session_cookie="fp_sess",
+        same_site="lax",
+        max_age=settings.session_max_age,
+        https_only=False,
+    )
     application.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     application.include_router(pages.router)
@@ -33,7 +46,7 @@ def create_app() -> FastAPI:
 
     @application.on_event("startup")
     async def on_startup() -> None:
-        import app.models  # noqa: F401 ensures models registered
+        import app.models  # noqa: F401 регистрируем модели
 
         async with engine.begin() as conn:
             await conn.run_sync(base.Base.metadata.create_all)

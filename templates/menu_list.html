@@ -36,6 +36,7 @@
                         >Открыть</a
                     >
                     <form method="post" action="{{ url_for('delete_menu', menu_id=menu.id) }}">
+                        {{ csrf_input(request) }}
                         <button
                             type="submit"
                             class="btn btn--ghost btn--small btn--danger"
