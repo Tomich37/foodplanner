@@ -161,6 +161,14 @@
                                 <option value="taste" {% if unit == 'taste' %}selected{% endif %}>по вкусу</option>
                             </select>
                         </div>
+                        <button
+                            type="button"
+                            class="btn btn--danger btn--small ingredient-row__remove"
+                            data-remove-ingredient
+                            aria-label="Удалить ингредиент"
+                        >
+                            −
+                        </button>
                     </div>
                     {% endfor %}
                     {% else %}
@@ -187,6 +195,14 @@
                                 <option value="taste">по вкусу</option>
                             </select>
                         </div>
+                        <button
+                            type="button"
+                            class="btn btn--danger btn--small ingredient-row__remove"
+                            data-remove-ingredient
+                            aria-label="Удалить ингредиент"
+                        >
+                            −
+                        </button>
                     </div>
                     {% endif %}
                 </div>
