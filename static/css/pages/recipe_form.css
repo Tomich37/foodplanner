@@ -51,7 +51,8 @@
 
 .ingredient-row__remove {
     width: 36px;
-    height: 36px;
+    height: 44px;
+    min-height: 44px;
     min-width: 36px;
     padding: 0;
     font-size: 20px;
