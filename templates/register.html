@@ -17,6 +17,7 @@
         </ul>
         {% endif %}
         <form method="post" class="auth-form">
+            {{ csrf_input(request) }}
             <div class="form-group">
                 <label for="full_name">Имя и фамилия</label>
                 <input

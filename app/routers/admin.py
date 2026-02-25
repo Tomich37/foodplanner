@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import TEMPLATES_DIR, settings
+from app.core.csrf import csrf_input
 from app.core.security import hash_password
 from app.db.session import get_session
 from app.dependencies.users import get_current_user_required
@@ -25,6 +26,7 @@ from app.services.ingredient_catalog import (
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["static_version"] = settings.static_version
+templates.env.globals["csrf_input"] = csrf_input
 TAG_VALUE_RE = re.compile(r"[^a-z0-9]+")
 PRIMARY_TAG_VALUES = {"breakfast", "lunch", "dinner"}
 
@@ -409,7 +411,7 @@ async def change_user_password(
 ):
     _ensure_admin(current_user)
     clean_password = (new_password or "").strip()
-    if len(clean_password) < 6:
+    if len(clean_password) < 10:
         return await _render_users_page(
             request, session, current_user, form_error="Пароль должен содержать минимум 6 символов."
         )

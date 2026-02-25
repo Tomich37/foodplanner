@@ -43,6 +43,7 @@
         {% if current_user %}
         {% set default_title = current_menu.title if current_menu else (selected_days and ('Меню на ' ~ selected_days ~ ' дн.')) %}
         <form method="post" action="{{ url_for('save_menu') }}" class="menu-save-form">
+            {{ csrf_input(request) }}
             <div>
                 <label for="menu_title">Название меню</label>
                 <input

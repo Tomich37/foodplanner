@@ -1,7 +1,9 @@
-﻿fastapi
-uvicorn
-jinja2
-sqlalchemy
-asyncpg
-python-multipart
-itsdangerous
+fastapi==0.115.11
+uvicorn==0.34.0
+jinja2==3.1.6
+sqlalchemy==2.0.38
+asyncpg==0.30.0
+python-multipart==0.0.20
+itsdangerous==2.2.0
+passlib[argon2]==1.7.4
+pillow==11.1.0

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import TEMPLATES_DIR, settings
+from app.core.csrf import csrf_input
 from app.core.security import hash_password, verify_password
 from app.db.session import get_session
 from app.dependencies.users import get_current_user_required
@@ -14,18 +15,21 @@ from app.models.user import User
 router = APIRouter(prefix="/profile", tags=["profile"])
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.globals["static_version"] = settings.static_version
+templates.env.globals["csrf_input"] = csrf_input
 
 
 class ProfileService:
     """Сервис профиля: валидация и смена пароля пользователя."""
 
     @staticmethod
-    def validate_passwords(current_password: str, new_password: str, confirm_password: str, user: User) -> list[str]:
+    def validate_passwords(
+        current_password: str, new_password: str, confirm_password: str, user: User
+    ) -> list[str]:
         errors: list[str] = []
         if not verify_password(current_password, user.password_hash):
             errors.append("Текущий пароль указан неверно.")
-        if len(new_password.strip()) < 6:
-            errors.append("Новый пароль должен содержать минимум 6 символов.")
+        if len(new_password.strip()) < 10:
+            errors.append("Новый пароль должен содержать минимум 10 символов.")
         if new_password != confirm_password:
             errors.append("Пароли не совпадают.")
         return errors
@@ -62,7 +66,9 @@ async def change_password(
     confirm_password: str = Form(...),
 ):
     """Обрабатывает смену пароля в личном кабинете."""
-    errors = profile_service.validate_passwords(current_password, new_password, confirm_password, current_user)
+    errors = profile_service.validate_passwords(
+        current_password, new_password, confirm_password, current_user
+    )
 
     if errors:
         return templates.TemplateResponse(

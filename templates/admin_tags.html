@@ -36,6 +36,7 @@
                 <div class="form-error">{{ form_error }}</div>
                 {% endif %}
                 <form method="post" action="{{ url_for('admin_create_tag') }}" class="admin-tags__form">
+                    {{ csrf_input(request) }}
                     <label for="tag-label">Название</label>
                     <input
                         type="text"
@@ -75,6 +76,7 @@
                             action="{{ url_for('admin_delete_tag', tag_id=tag.id) }}"
                             onsubmit="return confirm('Вы уверены, что хотите удалить тег «{{ tag.label }}»?')"
                         >
+                            {{ csrf_input(request) }}
                             <button type="submit" class="btn btn--ghost btn--danger btn--small">Удалить</button>
                         </form>
                     </article>

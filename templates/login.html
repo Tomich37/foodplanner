@@ -11,6 +11,7 @@
         <div class="form-error">{{ error }}</div>
         {% endif %}
         <form method="post" class="auth-form">
+            {{ csrf_input(request) }}
             <div class="form-group">
                 <label for="email">E-mail</label>
                 <input

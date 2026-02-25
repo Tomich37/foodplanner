@@ -19,6 +19,7 @@
                 enctype="multipart/form-data"
                 class="recipe-form__form"
             >
+                {{ csrf_input(request) }}
                 <div class="form-group">
                     <label for="title">Название блюда</label>
                     <input

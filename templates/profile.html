@@ -55,6 +55,7 @@
                 {% endif %}
 
                 <form method="post" action="{{ url_for('profile_change_password') }}" class="profile-security__form">
+                    {{ csrf_input(request) }}
                     <div class="form-group">
                         <label for="current_password">Текущий пароль</label>
                         <input type="password" id="current_password" name="current_password" required />

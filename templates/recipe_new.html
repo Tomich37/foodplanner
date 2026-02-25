@@ -14,6 +14,7 @@
                 Опишите блюдо, добавьте фотографии и расскажите шаги, чтобы другие могли повторить результат.
             </p>
             <form method="post" action="{{ url_for('create_recipe') }}" enctype="multipart/form-data" class="recipe-form__form">
+                {{ csrf_input(request) }}
                 <div class="form-group">
                     <label for="title">Название блюда</label>
                     <input type="text" id="title" name="title" required placeholder="Например, паста с лососем" />

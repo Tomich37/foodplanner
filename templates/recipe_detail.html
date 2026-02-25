@@ -19,6 +19,7 @@
                 </p>
                 <h1>{{ recipe.title }}</h1>
                 <form method="post" action="{{ url_for('toggle_recipe_view') }}" class="form-actions" style="margin:8px 0;">
+                    {{ csrf_input(request) }}
                     <input type="hidden" name="next_url" value="{{ request.url.path }}" />
                     <label class="checkbox-ios" for="toggle-view">
                         <input
@@ -55,6 +56,7 @@
                         action="{{ url_for('delete_recipe', recipe_id=recipe.id) }}"
                         onsubmit="return confirm('Удалить рецепт без возможности восстановления?');"
                     >
+                        {{ csrf_input(request) }}
                         <button type="submit" class="btn btn--ghost btn--danger">Удалить</button>
                     </form>
                 </div>
