@@ -44,6 +44,21 @@
                     {% endfor %}
                 </div>
                 {% endif %}
+                {% if recipe_cost %}
+                <div class="recipe-detail__price{% if recipe_cost.total_rub is none %} recipe-detail__price--muted{% endif %}">
+                    {% if recipe_cost.total_rub is not none %}
+                    <span>Итоговая стоимость блюда:</span>
+                    <strong>{{ format_rub(recipe_cost.total_rub) }}</strong>
+                    {% if not recipe_cost.is_complete %}
+                    <small>
+                        Учтено ингредиентов: {{ recipe_cost.priced_ingredients }} из {{ recipe_cost.total_ingredients }}.
+                    </small>
+                    {% endif %}
+                    {% else %}
+                    <span>Стоимость блюда не рассчитана. Заполните цены ингредиентов в админке.</span>
+                    {% endif %}
+                </div>
+                {% endif %}
                 {% if current_user and (recipe.user_id == current_user.id or current_user.is_admin) %}
                 <div class="recipe-detail__actions">
                     <a

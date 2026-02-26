@@ -66,6 +66,19 @@
     flex-wrap: wrap;
 }
 
+.saved-menu-card__price {
+    margin: 8px 0 0;
+    color: var(--text-main);
+}
+
+.saved-menu-card__price strong {
+    color: #0f766e;
+}
+
+.saved-menu-card__price--muted {
+    color: var(--text-muted);
+}
+
 .saved-menu-card__actions {
     display: flex;
     gap: 8px;
@@ -122,6 +135,30 @@
     padding: 20px;
     margin-bottom: 24px;
     background: #fff;
+}
+
+.menu-cost-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 18px;
+    background: #fff;
+}
+
+.menu-cost-card h2 {
+    margin: 0;
+}
+
+.menu-cost-card__value {
+    margin: 10px 0 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f766e;
+}
+
+.menu-cost-card__hint {
+    margin: 8px 0 0;
+    color: var(--text-muted);
 }
 
 .shopping-list ul {
@@ -188,6 +225,20 @@
     font-size: 14px;
 }
 
+.menu-meal-card__price {
+    margin: 0 0 10px;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.menu-meal-card__price strong {
+    color: #0f766e;
+}
+
+.menu-meal-card__price--muted {
+    color: var(--text-muted);
+}
+
 .menu-meal-card__actions {
     display: flex;
     flex-wrap: wrap;
@@ -240,4 +291,3 @@
     background: var(--accent-soft);
     color: var(--text-main);
 }
-

@@ -32,6 +32,27 @@
     max-width: 520px;
 }
 
+.recipe-detail__price {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.recipe-detail__price strong {
+    font-size: 22px;
+    color: #0f766e;
+}
+
+.recipe-detail__price small {
+    color: var(--text-muted);
+}
+
+.recipe-detail__price--muted {
+    color: var(--text-muted);
+}
+
 .recipe-tags {
     display: flex;
     flex-wrap: wrap;

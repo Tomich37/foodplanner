@@ -70,6 +70,26 @@
         <p class="menu-save-hint">Войдите, чтобы сохранить меню и вернуться к нему позже.</p>
         {% endif %}
 
+            <div class="menu-cost-card">
+                <h2>Итоговая стоимость плана</h2>
+                {% if menu_cost and menu_cost.total_rub is not none %}
+                <p class="menu-cost-card__value">{{ format_rub(menu_cost.total_rub) }}</p>
+                {% if menu_cost.meals_with_price < menu_cost.total_meals %}
+                <p class="menu-cost-card__hint">
+                    Учтены не все блюда: {{ menu_cost.meals_with_price }} из {{ menu_cost.total_meals }}.
+                </p>
+                {% elif not menu_cost.is_complete %}
+                <p class="menu-cost-card__hint">
+                    Стоимость рассчитана частично: по некоторым блюдам не хватает цен ингредиентов.
+                </p>
+                {% else %}
+                <p class="menu-cost-card__hint">Расчёт полный.</p>
+                {% endif %}
+                {% else %}
+                <p class="menu-cost-card__hint">Стоимость не рассчитана. Добавьте цены ингредиентов в админке.</p>
+                {% endif %}
+            </div>
+
             <div class="shopping-list">
                 <h2>Список покупок</h2>
                 <ul>
@@ -93,6 +113,17 @@
                         <h4>{{ meal.recipe.title }}</h4>
                         {% if meal.recipe.description %}
                         <p>{{ meal.recipe.description }}</p>
+                        {% endif %}
+                        {% set recipe_cost = meal.recipe_cost if meal.recipe_cost is defined else none %}
+                        {% if recipe_cost and recipe_cost.total_rub is not none %}
+                        <p class="menu-meal-card__price">
+                            Стоимость блюда: <strong>{{ format_rub(recipe_cost.total_rub) }}</strong>
+                            {% if not recipe_cost.is_complete %}
+                            <span>· учтено ингредиентов: {{ recipe_cost.priced_ingredients }} из {{ recipe_cost.total_ingredients }}</span>
+                            {% endif %}
+                        </p>
+                        {% else %}
+                        <p class="menu-meal-card__price menu-meal-card__price--muted">Стоимость блюда не рассчитана.</p>
                         {% endif %}
                         <div class="menu-meal-card__actions">
                             <a

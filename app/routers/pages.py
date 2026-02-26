@@ -19,6 +19,7 @@ from app.models import RecipeExtraTag
 from app.models.menu import Menu, MenuDay, MenuMeal
 from app.models.recipe import Recipe
 from app.models.user import User
+from app.services.costing import MenuCostSummary, build_price_lookup, build_recipe_cost_map, calculate_menu_cost, format_rub
 from app.services.cover_resolver import recipe_cover_resolver
 from app.services.ingredient_catalog import canonical_name_for_value, fetch_ingredient_alias_map
 from app.services.unit_converter import UnitConverter
@@ -31,6 +32,7 @@ templates.env.globals["csrf_input"] = csrf_input
 templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 unit_converter = UnitConverter()
 templates.env.globals["format_amount"] = unit_converter.format_human
+templates.env.globals["format_rub"] = format_rub
 
 
 @dataclass(frozen=True)
@@ -239,14 +241,40 @@ async def menu_list(
 ):
     """Страница со списком сохраненных меню пользователя."""
     saved_menus: list[Menu] = []
+    menu_costs: dict[int, MenuCostSummary] = {}
     if current_user:
         # Показываем меню конкретного пользователя в порядке убывания даты создания.
         result = await session.execute(
             select(Menu)
             .where(Menu.user_id == current_user.id)
+            .options(
+                selectinload(Menu.days)
+                .selectinload(MenuDay.meals)
+                .selectinload(MenuMeal.recipe)
+                .selectinload(Recipe.ingredients)
+            )
             .order_by(Menu.created_at.desc())
         )
         saved_menus = result.scalars().all()
+
+        if saved_menus:
+            price_lookup = await build_price_lookup(session)
+            unique_recipes: dict[int, Recipe] = {}
+            for menu in saved_menus:
+                for day in menu.days:
+                    for meal in day.meals:
+                        recipe = meal.recipe
+                        if recipe:
+                            unique_recipes[recipe.id] = recipe
+
+            recipe_costs = build_recipe_cost_map(list(unique_recipes.values()), price_lookup, unit_converter)
+
+            for menu in saved_menus:
+                menu_plan_like = [
+                    {"meals": [{"recipe": meal.recipe} for meal in day.meals]}
+                    for day in menu.days
+                ]
+                menu_costs[menu.id] = calculate_menu_cost(menu_plan_like, recipe_costs)
 
     return templates.TemplateResponse(
         "menu_list.html",
@@ -254,6 +282,7 @@ async def menu_list(
             "request": request,
             "current_user": current_user,
             "saved_menus": saved_menus,
+            "menu_costs": menu_costs,
         },
     )
 
@@ -283,6 +312,8 @@ async def menu_builder(
     recipe_ids = {recipe.id for recipe in recipes}
     grouped_recipes = menu_planner.split_recipes_by_meal(recipes)
     alias_map = await fetch_ingredient_alias_map(session)
+    price_lookup = await build_price_lookup(session)
+    recipe_costs = build_recipe_cost_map(recipes, price_lookup, unit_converter)
 
     # Разбираем текущие выборы пользователя из query-параметров.
     selection_map = menu_planner.parse_selection(selection, recipe_ids)
@@ -328,6 +359,7 @@ async def menu_builder(
                     days = current_menu.days_count
 
     menu_plan_result: MenuPlanResult | None = None
+    menu_cost: MenuCostSummary | None = None
 
     if days:
         if not recipes:
@@ -336,6 +368,10 @@ async def menu_builder(
             menu_plan_result = menu_planner.build_menu(
                 recipes, grouped_recipes, days, selection_map, alias_map
             )
+            for day in menu_plan_result.plan:
+                for meal in day["meals"]:
+                    meal["recipe_cost"] = recipe_costs.get(meal["recipe"].id)
+            menu_cost = calculate_menu_cost(menu_plan_result.plan, recipe_costs)
             selection_map = menu_plan_result.selection_map
 
     selection_values = [
@@ -357,6 +393,7 @@ async def menu_builder(
             "recipes_by_meal": grouped_recipes,
             "all_recipes": recipes,
             "current_menu": current_menu,
+            "menu_cost": menu_cost,
         },
     )
 

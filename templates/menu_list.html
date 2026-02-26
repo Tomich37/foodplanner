@@ -22,12 +22,25 @@
             {% for menu in saved_menus %}
             <article class="saved-menu-card">
                 <div>
+                    {% set menu_cost = menu_costs.get(menu.id) if menu_costs else none %}
                     <h3>{{ menu.title }}</h3>
                     <p>
                         {{ menu.days_count }}
                         {{ 'день' if menu.days_count == 1 else 'дня' if menu.days_count in [2,3,4] else 'дней' }}
                         · {{ menu.created_at.strftime('%d.%m.%Y %H:%M') if menu.created_at else '' }}
                     </p>
+                    {% if menu_cost and menu_cost.total_rub is not none %}
+                    <p class="saved-menu-card__price">
+                        Стоимость: <strong>{{ format_rub(menu_cost.total_rub) }}</strong>
+                        {% if menu_cost.meals_with_price < menu_cost.total_meals %}
+                        · учтено блюд: {{ menu_cost.meals_with_price }} из {{ menu_cost.total_meals }}
+                        {% elif not menu_cost.is_complete %}
+                        · расчёт частичный
+                        {% endif %}
+                    </p>
+                    {% else %}
+                    <p class="saved-menu-card__price saved-menu-card__price--muted">Стоимость не рассчитана.</p>
+                    {% endif %}
                 </div>
                 <div class="saved-menu-card__actions">
                     <a

@@ -1,14 +1,12 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import STATIC_DIR, settings
 from app.core.middleware import CSRFMiddleware, MultipartBodyLimitMiddleware, SecurityHeadersMiddleware
-from app.db import base
+from app.db.bootstrap import bootstrap_database
 from app.db.session import AsyncSessionLocal, engine
-from app.routers import admin, auth, pages
-from app.routers import recipes, profile
+from app.routers import admin, auth, pages, profile, recipes
 from app.services.ingredient_catalog import sync_catalog_from_recipe_ingredients
 
 DEFAULT_EXTRA_TAGS = (
@@ -24,7 +22,8 @@ def create_app() -> FastAPI:
     application = FastAPI()
 
     # FastAPI применяет middleware в обратном порядке добавления.
-    # SessionMiddleware должен выполняться раньше CSRFMiddleware, чтобы был доступ к request.session.
+    # SessionMiddleware должен выполняться раньше CSRFMiddleware,
+    # чтобы в CSRF-проверке уже была доступна request.session.
     application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(CSRFMiddleware)
     application.add_middleware(MultipartBodyLimitMiddleware)
@@ -46,45 +45,7 @@ def create_app() -> FastAPI:
 
     @application.on_event("startup")
     async def on_startup() -> None:
-        import app.models  # noqa: F401 регистрируем модели
-
-        async with engine.begin() as conn:
-            await conn.run_sync(base.Base.metadata.create_all)
-            await conn.execute(
-                text(
-                    "ALTER TABLE IF EXISTS recipes "
-                    "ADD COLUMN IF NOT EXISTS tags TEXT[] NOT NULL DEFAULT '{}'::text[]"
-                )
-            )
-            await conn.execute(
-                text(
-                    "ALTER TABLE IF EXISTS users "
-                    "ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"
-                )
-            )
-            await conn.execute(
-                text(
-                    "ALTER TABLE IF EXISTS users "
-                    "ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE"
-                )
-            )
-            await conn.execute(
-                text(
-                    "ALTER TABLE IF EXISTS recipe_ingredients "
-                    "ADD COLUMN IF NOT EXISTS unit VARCHAR(16) NOT NULL DEFAULT 'g'"
-                )
-            )
-            tag_count = await conn.scalar(text("SELECT COUNT(*) FROM recipe_extra_tags"))
-            if not tag_count:
-                for value, label in DEFAULT_EXTRA_TAGS:
-                    await conn.execute(
-                        text(
-                            "INSERT INTO recipe_extra_tags (value, label) "
-                            "VALUES (:value, :label) "
-                            "ON CONFLICT DO NOTHING"
-                        ),
-                        {"value": value, "label": label},
-                    )
+        await bootstrap_database(engine, default_extra_tags=DEFAULT_EXTRA_TAGS)
 
         async with AsyncSessionLocal() as session:
             await sync_catalog_from_recipe_ingredients(session)
