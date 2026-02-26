@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from urllib.parse import quote_plus
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
@@ -29,6 +31,12 @@ templates.env.globals["static_version"] = settings.static_version
 templates.env.globals["csrf_input"] = csrf_input
 TAG_VALUE_RE = re.compile(r"[^a-z0-9]+")
 PRIMARY_TAG_VALUES = {"breakfast", "lunch", "dinner"}
+PRICE_UNIT_OPTIONS = ("kg", "l", "pcs")
+PRICE_UNIT_LABELS = {
+    "kg": "кг",
+    "l": "л",
+    "pcs": "шт",
+}
 
 
 def _ensure_admin(user: User) -> None:
@@ -164,6 +172,49 @@ async def _render_ingredients_page(
     )
 
 
+def _parse_price_rub(raw_value: str) -> Decimal | None:
+    value = (raw_value or "").strip().replace(",", ".")
+    if not value:
+        return None
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation:
+        return None
+    if parsed <= 0:
+        return None
+    return parsed.quantize(Decimal("0.01"))
+
+
+async def _render_prices_page(
+    request: Request,
+    session: AsyncSession,
+    current_user: User,
+    *,
+    form_error: str | None = None,
+    info_message: str | None = None,
+) -> HTMLResponse:
+    catalog = await _fetch_ingredient_catalog(session)
+    priced_count = sum(
+        1
+        for item in catalog
+        if item.current_price_rub is not None and not item.price_is_stale
+    )
+    return templates.TemplateResponse(
+        "admin_prices.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "catalog": catalog,
+            "priced_count": priced_count,
+            "form_error": form_error,
+            "info_message": info_message,
+            "unit_options": PRICE_UNIT_OPTIONS,
+            "unit_labels": PRICE_UNIT_LABELS,
+        },
+        status_code=status.HTTP_400_BAD_REQUEST if form_error else status.HTTP_200_OK,
+    )
+
+
 @router.get("/tags", response_class=HTMLResponse, name="admin_tags")
 async def admin_tags(
     request: Request,
@@ -248,6 +299,86 @@ async def admin_ingredients(
         session,
         current_user,
         info_message=message,
+    )
+
+
+@router.get("/ingredients/prices", response_class=HTMLResponse, name="admin_ingredient_prices")
+async def admin_ingredient_prices(
+    request: Request,
+    message: str | None = Query(None),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    return await _render_prices_page(
+        request,
+        session,
+        current_user,
+        info_message=message,
+    )
+
+
+@router.post("/ingredients/{ingredient_id}/price", response_class=HTMLResponse, name="admin_update_ingredient_price")
+async def admin_update_ingredient_price(
+    request: Request,
+    ingredient_id: int,
+    price_rub: str = Form(""),
+    price_unit: str = Form("kg"),
+    clear_price: str | None = Form(None),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user_required),
+):
+    _ensure_admin(current_user)
+    ingredient = await session.get(IngredientCanonical, ingredient_id)
+    if not ingredient:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ингредиент не найден.")
+
+    if clear_price is not None:
+        ingredient.current_price_rub = None
+        ingredient.current_price_unit = None
+        ingredient.current_price_currency = "RUB"
+        ingredient.current_price_region = "RU_AVG"
+        ingredient.current_price_source = "manual"
+        ingredient.current_price_updated_at = datetime.now(UTC)
+        ingredient.price_is_stale = True
+        await session.commit()
+        message = f"Цена для «{ingredient.name}» очищена."
+        return RedirectResponse(
+            url=f"/admin/ingredients/prices?message={quote_plus(message)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    normalized_unit = (price_unit or "").strip().lower()
+    if normalized_unit not in PRICE_UNIT_OPTIONS:
+        return await _render_prices_page(
+            request,
+            session,
+            current_user,
+            form_error="Выберите корректную единицу измерения: кг, л или шт.",
+        )
+
+    parsed_price = _parse_price_rub(price_rub)
+    if parsed_price is None:
+        return await _render_prices_page(
+            request,
+            session,
+            current_user,
+            form_error="Введите корректную цену в рублях (число больше нуля).",
+        )
+
+    ingredient.current_price_rub = parsed_price
+    ingredient.current_price_unit = normalized_unit
+    ingredient.current_price_currency = "RUB"
+    ingredient.current_price_region = "RU_AVG"
+    ingredient.current_price_source = "manual"
+    ingredient.current_price_updated_at = datetime.now(UTC)
+    ingredient.price_is_stale = False
+    await session.commit()
+
+    message = f"Цена для «{ingredient.name}» обновлена."
+    return RedirectResponse(
+        url=f"/admin/ingredients/prices?message={quote_plus(message)}",
+        status_code=status.HTTP_303_SEE_OTHER,
     )
 
 

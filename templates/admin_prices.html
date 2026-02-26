@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Админ · Цены продуктов{% endblock %}
+
+{% block content %}
+<section class="admin-tags">
+    <div class="container">
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_users') }}" class="admin-nav__link">Пользователи</a>
+            <a href="{{ url_for('admin_tags') }}" class="admin-nav__link">Теги</a>
+            <a href="{{ url_for('admin_ingredients') }}" class="admin-nav__link">Ингредиенты</a>
+            <a href="{{ url_for('admin_ingredient_prices') }}" class="admin-nav__link admin-nav__link--active">Цены</a>
+        </div>
+
+        <div class="admin-tags__header">
+            <div>
+                <p class="eyebrow">Ручное управление ценами</p>
+                <h1>Цены ингредиентов</h1>
+                <p class="admin-tags__subtitle">
+                    Здесь можно вручную задавать ориентировочные цены для продуктов из каталога.
+                    Эти цены сохраняются в базе как текущие и помечаются источником <strong>manual</strong>.
+                </p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__label">Цены заполнены</div>
+                <div class="stat-card__value">{{ priced_count }} / {{ catalog|length }}</div>
+            </div>
+        </div>
+
+        {% if info_message %}
+        <div class="form-error" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">
+            {{ info_message }}
+        </div>
+        {% endif %}
+        {% if form_error %}
+        <div class="form-error">{{ form_error }}</div>
+        {% endif %}
+
+        <div class="admin-tags__card">
+            <h2>Каталог цен</h2>
+            {% if catalog %}
+            <div class="admin-tags__toolbar">
+                <input
+                    type="search"
+                    id="prices-search"
+                    class="admin-tags__search"
+                    placeholder="Поиск по названию ингредиента или алиасу"
+                />
+                <label style="display:flex;align-items:center;gap:0.45rem;white-space:nowrap;color:#4b5563;">
+                    <input type="checkbox" id="prices-only-unfilled" />
+                    <span>Показать только незаполненные</span>
+                </label>
+                <div class="admin-tags__search-meta">
+                    Найдено: <span id="prices-search-count">{{ catalog|length }}</span>
+                </div>
+            </div>
+            <p class="admin-tags__empty" id="prices-empty-message" style="display:none;">
+                По вашему запросу ничего не найдено.
+            </p>
+
+            <div class="admin-tags__list">
+                {% for item in catalog %}
+                <article
+                    class="tag-row"
+                    style="align-items:flex-start;flex-direction:column;"
+                    data-price-item
+                    data-search="{{ (item.name ~ ' ' ~ item.normalized_name ~ ' ' ~ (item.aliases | map(attribute='alias') | join(' '))) | lower }}"
+                    data-price-filled="{{ '1' if item.current_price_rub is not none and item.current_price_unit and not item.price_is_stale else '0' }}"
+                >
+                    <div style="width:100%;display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start;">
+                        <div>
+                            <div class="tag-row__label">{{ item.name }}</div>
+                            <div class="tag-row__meta">
+                                Ключ: <span>{{ item.normalized_name }}</span>
+                                {% if item.current_price_updated_at %}
+                                · Обновлено: {{ item.current_price_updated_at.strftime('%d.%m.%Y %H:%M') }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if item.current_price_rub and item.current_price_unit %}
+                        <div class="tag-row__meta" style="font-size:0.95rem;">
+                            Текущая цена: <span>{{ item.current_price_rub }} ₽ / {{ unit_labels.get(item.current_price_unit, item.current_price_unit) }}</span>
+                        </div>
+                        {% else %}
+                        <div class="tag-row__meta" style="font-size:0.95rem;">Цена не задана</div>
+                        {% endif %}
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{{ url_for('admin_update_ingredient_price', ingredient_id=item.id) }}"
+                        style="width:100%;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-end;margin-top:0.6rem;"
+                    >
+                        {{ csrf_input(request) }}
+                        <label style="display:flex;flex-direction:column;gap:0.25rem;min-width:180px;">
+                            <span class="tag-row__meta">Цена, ₽</span>
+                            <input
+                                type="number"
+                                name="price_rub"
+                                min="0.01"
+                                step="0.01"
+                                required
+                                value="{{ item.current_price_rub if item.current_price_rub else '' }}"
+                                style="border:1px solid #e5e7eb;border-radius:10px;padding:0.45rem 0.6rem;"
+                            />
+                        </label>
+                        <label style="display:flex;flex-direction:column;gap:0.25rem;min-width:120px;">
+                            <span class="tag-row__meta">Единица</span>
+                            <select
+                                name="price_unit"
+                                style="border:1px solid #e5e7eb;border-radius:10px;padding:0.45rem 0.6rem;"
+                            >
+                                {% for unit in unit_options %}
+                                <option
+                                    value="{{ unit }}"
+                                    {% if item.current_price_unit == unit or (not item.current_price_unit and unit == 'kg') %}selected{% endif %}
+                                >
+                                    {{ unit_labels.get(unit, unit) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <button type="submit" class="btn btn--primary btn--small">Сохранить</button>
+                    </form>
+
+                    <form
+                        method="post"
+                        action="{{ url_for('admin_update_ingredient_price', ingredient_id=item.id) }}"
+                        style="width:100%;display:flex;justify-content:flex-start;margin-top:0.3rem;"
+                        onsubmit="return confirm('Очистить цену для этого ингредиента?');"
+                    >
+                        {{ csrf_input(request) }}
+                        <input type="hidden" name="clear_price" value="true" />
+                        <button type="submit" class="btn btn--ghost btn--small">Очистить цену</button>
+                    </form>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="admin-tags__empty">Каталог ингредиентов пуст. Сначала заполните вкладку «Ингредиенты».</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/pages/admin_tags.css') }}?v={{ static_version }}" />
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/admin_prices.js') }}?v={{ static_version }}" defer></script>
+{% endblock %}

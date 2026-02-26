@@ -21,6 +21,7 @@ from app.core.csrf import csrf_input
 from app.db.session import get_session
 from app.dependencies.users import get_current_user, get_current_user_required
 from app.models import Recipe, RecipeIngredient, RecipeStep, User, RecipeExtraTag
+from app.services.costing import build_price_lookup, build_recipe_cost_map, format_rub
 from app.services.cover_resolver import recipe_cover_resolver
 from app.services.ingredient_catalog import (
     canonical_name_for_value,
@@ -36,6 +37,7 @@ UPLOADS_DIR = STATIC_DIR / "uploads"
 templates.env.globals["cover_url"] = recipe_cover_resolver.resolve
 unit_converter = UnitConverter()
 templates.env.globals["format_amount"] = unit_converter.format_human
+templates.env.globals["format_rub"] = format_rub
 templates.env.globals["static_version"] = settings.static_version
 templates.env.globals["csrf_input"] = csrf_input
 
@@ -591,6 +593,8 @@ async def recipe_detail(
 ):
     """Детальная страница рецепта."""
     recipe = await recipe_service.load_recipe(session, recipe_id)
+    price_lookup = await build_price_lookup(session)
+    recipe_cost = build_recipe_cost_map([recipe], price_lookup, unit_converter).get(recipe.id)
     minimal_view = bool(request.session.get("minimal_recipe_view"))
     back_url = resolve_back_url(request, fallback=str(request.url_for("recipes_list")))
     extra_models = await fetch_extra_tag_models(session)
@@ -601,6 +605,7 @@ async def recipe_detail(
             "request": request,
             "current_user": current_user,
             "recipe": recipe,
+            "recipe_cost": recipe_cost,
             "tag_labels": tag_labels,
             "minimal_view": minimal_view,
             "previous_url": back_url,
