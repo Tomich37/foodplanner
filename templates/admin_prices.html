@@ -46,6 +46,10 @@
                     class="admin-tags__search"
                     placeholder="Поиск по названию ингредиента или алиасу"
                 />
+                <label style="display:flex;align-items:center;gap:0.45rem;white-space:nowrap;color:#4b5563;">
+                    <input type="checkbox" id="prices-only-unfilled" />
+                    <span>Показать только незаполненные</span>
+                </label>
                 <div class="admin-tags__search-meta">
                     Найдено: <span id="prices-search-count">{{ catalog|length }}</span>
                 </div>
@@ -61,6 +65,7 @@
                     style="align-items:flex-start;flex-direction:column;"
                     data-price-item
                     data-search="{{ (item.name ~ ' ' ~ item.normalized_name ~ ' ' ~ (item.aliases | map(attribute='alias') | join(' '))) | lower }}"
+                    data-price-filled="{{ '1' if item.current_price_rub is not none and item.current_price_unit and not item.price_is_stale else '0' }}"
                 >
                     <div style="width:100%;display:flex;justify-content:space-between;gap:0.75rem;align-items:flex-start;">
                         <div>
