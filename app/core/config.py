@@ -20,6 +20,11 @@ class Settings:
             except ValueError:
                 return default
 
+        def _list_env(name: str) -> tuple[str, ...]:
+            raw = os.getenv(name, "")
+            values = [item.strip() for item in raw.split(",")]
+            return tuple(item for item in values if item)
+
         self.database_url = os.getenv(
             "DATABASE_URL",
             "postgresql+asyncpg://postgres:postgres@localhost:5432/foodplanner",
@@ -36,6 +41,7 @@ class Settings:
         )
         self.login_max_attempts = _int_env("LOGIN_MAX_ATTEMPTS", 5)
         self.login_block_seconds = _int_env("LOGIN_BLOCK_SECONDS", 10 * 60)
+        self.csrf_trusted_origins = _list_env("CSRF_TRUSTED_ORIGINS")
 
 
 settings = Settings()

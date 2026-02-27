@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+
 from fastapi import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -8,6 +10,54 @@ from starlette.responses import JSONResponse
 from app.core.config import settings
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+
+
+def _normalize_origin(value: str | None) -> str | None:
+    if not value:
+        return None
+
+    parsed = urlparse(value.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        return None
+
+    host = parsed.hostname.lower()
+    port = parsed.port
+    if port is None:
+        port = 443 if parsed.scheme == "https" else 80
+
+    return f"{parsed.scheme}://{host}:{port}"
+
+
+def _extract_first_header_value(value: str | None) -> str | None:
+    if not value:
+        return None
+    return value.split(",", maxsplit=1)[0].strip()
+
+
+def _collect_allowed_origins(request: Request) -> set[str]:
+    allowed: set[str] = set()
+
+    for configured_origin in settings.csrf_trusted_origins:
+        normalized = _normalize_origin(configured_origin)
+        if normalized:
+            allowed.add(normalized)
+
+    base_normalized = _normalize_origin(str(request.base_url))
+    if base_normalized:
+        allowed.add(base_normalized)
+
+    forwarded_proto = _extract_first_header_value(request.headers.get("x-forwarded-proto"))
+    scheme = forwarded_proto or request.url.scheme
+
+    for header_name in ("x-forwarded-host", "host"):
+        header_value = _extract_first_header_value(request.headers.get(header_name))
+        if not header_value:
+            continue
+        normalized = _normalize_origin(f"{scheme}://{header_value}")
+        if normalized:
+            allowed.add(normalized)
+
+    return allowed
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -61,14 +111,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         # Проверяем same-origin через Origin/Referer.
         origin = request.headers.get("origin")
         referer = request.headers.get("referer")
-        base_url = str(request.base_url).rstrip("/")
-        allowed_origin = base_url
 
         is_valid_origin = True
-        if origin:
-            is_valid_origin = origin.rstrip("/") == allowed_origin
-        elif referer:
-            is_valid_origin = referer.startswith(base_url + "/") or referer == base_url
+        if origin or referer:
+            provided_origin = _normalize_origin(origin) or _normalize_origin(referer)
+            allowed_origins = _collect_allowed_origins(request)
+            is_valid_origin = provided_origin is not None and provided_origin in allowed_origins
 
         if not is_valid_origin:
             return JSONResponse(
