@@ -20,9 +20,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Content-Security-Policy"
         ] = (
             "default-src 'self'; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: https://mc.yandex.ru https://*.yandex.ru; "
             "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self'; "
+            "script-src 'self' 'sha256-Yn0rko3bCH+jo4pn2Y7vA2ETS9s/qUPj+V7Bbtyjy/s=' https://mc.yandex.ru https://static.cloudflareinsights.com; "
+            "connect-src 'self' https://mc.yandex.ru https://*.yandex.ru https://cloudflareinsights.com https://static.cloudflareinsights.com; "
+            "frame-src 'self' https://mc.yandex.ru; "
             "object-src 'none'; "
             "base-uri 'self'; "
             "frame-ancestors 'none'; "
