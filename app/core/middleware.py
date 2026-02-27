@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+
 from fastapi import status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -12,6 +14,9 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        csp_nonce = secrets.token_urlsafe(16)
+        request.state.csp_nonce = csp_nonce
+
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -20,9 +25,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Content-Security-Policy"
         ] = (
             "default-src 'self'; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: https://mc.yandex.ru https://*.yandex.ru; "
             "style-src 'self' 'unsafe-inline'; "
-            "script-src 'self'; "
+            f"script-src 'self' 'nonce-{csp_nonce}' https://mc.yandex.ru https://static.cloudflareinsights.com; "
+            "connect-src 'self' https://mc.yandex.ru https://*.yandex.ru https://cloudflareinsights.com https://static.cloudflareinsights.com; "
+            "frame-src 'self' https://mc.yandex.ru; "
             "object-src 'none'; "
             "base-uri 'self'; "
             "frame-ancestors 'none'; "
